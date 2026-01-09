@@ -1,0 +1,23 @@
+# Ignore virtual environment
+.venv/
+venv/
+env/
+
+# Ignore environment variables
+.env
+
+# Ignore database and logs
+*.db
+*.csv
+*.log
+
+# Ignore OS specific files
+.DS_Store
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore ngrok binary and zip (user should download their own)
+ngrok
+ngrok.zip

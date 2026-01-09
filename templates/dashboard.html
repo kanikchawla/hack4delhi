@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Agent Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container { max-width: 1000px; margin-top: 30px; }
+        .tab-content { padding-top: 20px; }
+        .card { margin-bottom: 20px; }
+        .status-badge { font-size: 0.8em; }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>🎙️ Voice Agent Admin</h1>
+        <a href="/download-logs" class="btn btn-success">📥 Download All Records (Excel/CSV)</a>
+    </div>
+
+    <!-- Make Call Section -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">📞 Make Outbound Call</h5>
+        </div>
+        <div class="card-body">
+            <form id="callForm" onsubmit="makeCall(event)">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Phone Numbers (Comma separated)</label>
+                        <textarea class="form-control" name="to_number" placeholder="+919999999999, +1234567890" rows="3" required></textarea>
+                        <div class="form-text">Enter multiple numbers separated by comma</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Custom Message (Optional)</label>
+                        <textarea class="form-control" name="custom_message" placeholder="Hello, this is a reminder regarding..." rows="3"></textarea>
+                        <div class="form-text">Overrides the default greeting</div>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Ngrok Webhook URL</label>
+                        <input type="url" class="form-control" name="webhook_url" placeholder="https://xyz.ngrok-free.app/voice" required>
+                    </div>
+                    <div class="col-md-12 text-end">
+                        <button type="submit" class="btn btn-primary px-4">Initiate Calls</button>
+                    </div>
+                </div>
+            </form>
+            <div id="callStatus" class="mt-2"></div>
+        </div>
+    </div>
+
+    <!-- Logs Section -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="inbound-tab" data-bs-toggle="tab" data-bs-target="#inbound" type="button" role="tab">📥 Inbound Logs</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="outbound-tab" data-bs-toggle="tab" data-bs-target="#outbound" type="button" role="tab">📤 Outbound Logs</button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="myTabContent">
+                
+                <!-- Inbound Table -->
+                <div class="tab-pane fade show active" id="inbound" role="tabpanel">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Time</th>
+                                <th>From Number</th>
+                                <th>Call SID</th>
+                                <th>Transcript Snippet</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inboundTableBody">
+                            <!-- Filled by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Outbound Table -->
+                <div class="tab-pane fade" id="outbound" role="tabpanel">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Time</th>
+                                <th>To Number</th>
+                                <th>Call SID</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="outboundTableBody">
+                            <!-- Filled by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    async function fetchLogs() {
+        const response = await fetch('/api/logs');
+        const data = await response.json();
+        
+        const inboundBody = document.getElementById('inboundTableBody');
+        const outboundBody = document.getElementById('outboundTableBody');
+        
+        inboundBody.innerHTML = '';
+        outboundBody.innerHTML = '';
+
+        data.forEach(call => {
+            const row = `<tr>
+                <td>${new Date(call.timestamp).toLocaleString()}</td>
+                <td>${call.direction === 'Inbound' ? call.from_number : call.to_number}</td>
+                <td><small class="text-muted">${call.call_sid}</small></td>
+                <td>${call.last_message || '<i>No transcript yet</i>'}</td>
+            </tr>`;
+
+            if (call.direction === 'Inbound') {
+                inboundBody.innerHTML += row;
+            } else {
+                outboundBody.innerHTML += row;
+            }
+        });
+    }
+
+    async function makeCall(event) {
+        event.preventDefault();
+        const form = event.target;
+        const statusDiv = document.getElementById('callStatus');
+        const formData = new FormData(form);
+
+        statusDiv.innerHTML = '<div class="text-info">Initiating call...</div>';
+
+        try {
+            const response = await fetch('/make-call', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            
+            if (response.ok) {
+                statusDiv.innerHTML = `<div class="alert alert-success">✅ ${result.message}</div>`;
+                setTimeout(fetchLogs, 2000); // Refresh logs
+            } else {
+                statusDiv.innerHTML = `<div class="alert alert-danger">❌ Error: ${result.error}</div>`;
+            }
+        } catch (error) {
+            statusDiv.innerHTML = `<div class="alert alert-danger">❌ Network Error</div>`;
+        }
+    }
+
+    // Load logs on page load
+    fetchLogs();
+    // Refresh every 10 seconds
+    setInterval(fetchLogs, 10000);
+</script>
+</body>
+</html>
