@@ -1,5 +1,6 @@
 {
-  "buildCommand": "bash -lc 'if [ -f package.json ]; then npm install && npm run build; elif [ -f frontend/package.json ]; then cd frontend && npm install && npm run build; else echo \"No package.json found\" && exit 1; fi'",
+  "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "bash -lc 'if [ -f package.json ]; then npm install; elif [ -f frontend/package.json ]; then cd frontend && npm install; fi'"
+  "installCommand": "cd frontend && npm install",
+  "framework": "vite"
 }
