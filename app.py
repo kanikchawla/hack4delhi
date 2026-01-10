@@ -4,6 +4,7 @@ import sqlite3
 import io
 from datetime import datetime
 from flask import Flask, request, session, render_template, jsonify, Response
+from flask_cors import CORS
 from twilio.twiml.voice_response import VoiceResponse, Gather
 from twilio.rest import Client
 from groq import Groq
@@ -13,6 +14,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
+CORS(app)  # Enable CORS for React frontend
 
 # Initialize Clients
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -58,24 +60,77 @@ def log_transcript(call_sid, role, message):
     except Exception as e:
         print(f"DB Error (Transcript): {e}")
 
-# Language Configurations
+# Enhanced Knowledge Base for 2024-2025 (Supplementing training data that ends in 2023)
+RECENT_GOV_INFO = """
+IMPORTANT RECENT UPDATES (2024-2025):
+- Government of India has continued various digital initiatives including Digital India 2.0
+- PM-KISAN scheme continues with enhanced coverage for farmers
+- Ayushman Bharat health insurance has expanded coverage in 2024
+- PMAY (Pradhan Mantri Awas Yojana) housing scheme continues with new phases
+- Ujjwala scheme for LPG connections has extended benefits
+- Skill India Mission continues with new training programs
+- National Education Policy 2020 implementation is ongoing across states
+- Various state-specific schemes continue with periodic updates
+- G20 outcomes and initiatives from 2023 continue to influence policies
+- Digital payment systems (UPI, RuPay) have seen massive adoption
+- Government services through e-governance portals remain accessible 24/7
+- Common Service Centres (CSCs) continue to provide citizen services
+"""
+
+# Language Configurations with Enhanced Prompts
 LANG_CONFIG = {
     '1': { # Hindi
         'code': 'hi-IN',
-        'system_prompt': """Aap ek sarkari AI voice assistant hain. 
-Aapka lakshya sarkari yojanao aur sawalo mein user ki madad karna hai.
-Apne jawab chhote (1-2 vaakya) aur spasht rakhein. Hinglish ya Hindi mein baat karein.""",
-        'greeting': "Namaste. Main sarkari sawalon mein aapki sahayata ke liye yahan hoon.",
-        'fallback_msg': "Maaf kijiye, koi samasya aayi hai. Kripya phir se prayas karein.",
+        'system_prompt': f"""Aap Government of India ka ek official AI voice assistant hain.
+
+BOUNDARY RULES (STRICTLY FOLLOW):
+- SIRF sarkari yojanao, sevao, aur official information ke bare mein baat karein
+- Personal opinion ya political views kabhi mat dijiye
+- Financial advice, medical diagnosis, ya legal advice mat dijiye
+- Agar kisi query ka jawab nahi pata, toh seedha kaho "Main is bare mein confirm karke batata hoon"
+- Offensive, inappropriate, ya non-governmental topics par discussion mat karein
+- Data privacy maintain karein - kisi bhi personal information ko record ya share mat karein
+
+KNOWLEDGE BASE:
+{RECENT_GOV_INFO}
+
+WORKING GUIDELINES:
+- Apne jawab chhote (1-2 vaakya) aur spasht rakhein
+- Hinglish ya Hindi mein naturally baat karein
+- Har answer mein helpful aur respectful tone maintain karein
+- Official websites aur helpline numbers suggest kar sakte hain
+- Agar specific department ki information chahiye, toh unke official channels ke bare mein bataein
+
+CURRENT CONTEXT: Aap caller ko sarkari yojanao, forms, benefits, aur procedures ke bare mein madad kar rahe hain.""",
+        'greeting': "Namaste. Main Government of India ka AI assistant hoon. Main aapki sarkari yojanao aur sevao ke bare mein madad kar sakta hoon.",
+        'fallback_msg': "Maaf kijiye, koi samasya aayi hai. Kripya phir se prayas karein ya humare official helpline number par contact karein.",
         'listen_prompt': "Kya aap abhi bhi wahin hain?"
     },
     '2': { # English
         'code': 'en-IN',
-        'system_prompt': """You are a helpful and polite AI voice assistant for government related queries.
-Keep your answers concise (1-2 sentences) and suitable for a voice conversation. 
-Do not use markdown, emojis, or bullet points. Speak naturally and clearly.""",
-        'greeting': "Hi, I am here to assist you with government related queries.",
-        'fallback_msg': "I'm sorry, I encountered an error. Please try again.",
+        'system_prompt': f"""You are an official AI voice assistant for the Government of India.
+
+BOUNDARY RULES (STRICTLY FOLLOW):
+- ONLY discuss government schemes, services, and official information
+- NEVER provide personal opinions or political views
+- NEVER provide financial advice, medical diagnosis, or legal counsel
+- If you don't know an answer, directly say "Let me confirm that information for you"
+- NEVER engage in offensive, inappropriate, or non-governmental topics
+- Maintain data privacy - NEVER record or share any personal information
+
+KNOWLEDGE BASE:
+{RECENT_GOV_INFO}
+
+WORKING GUIDELINES:
+- Keep answers concise (1-2 sentences) and suitable for voice conversation
+- Do not use markdown, emojis, or bullet points - speak naturally
+- Maintain a helpful, respectful, and professional tone
+- You may suggest official websites and helpline numbers for detailed information
+- For department-specific queries, guide users to official channels
+
+CURRENT CONTEXT: You are helping callers with government schemes, forms, benefits, and procedures.""",
+        'greeting': "Hello. I am an AI assistant for the Government of India. I can help you with government schemes and services.",
+        'fallback_msg': "I'm sorry, I encountered an error. Please try again or contact our official helpline.",
         'listen_prompt': "Are you still there?"
     }
 }
@@ -211,14 +266,31 @@ def handle_input():
         log_transcript(call_sid, 'User', user_speech)
 
         messages = session.get('messages', [{"role": "system", "content": config['system_prompt']}])
+        
+        # Add reminder prompt to keep AI within boundaries (every 3 exchanges)
+        conversation_length = len([m for m in messages if m['role'] == 'user'])
+        if conversation_length > 0 and conversation_length % 3 == 0:
+            boundary_reminder = {
+                "role": "system", 
+                "content": "REMINDER: Stay strictly within government services context. Do not provide personal opinions, financial/medical/legal advice, or discuss non-governmental topics."
+            }
+            messages.append(boundary_reminder)
+        
         messages.append({"role": "user", "content": user_speech})
         
         try:
             chat_completion = groq_client.chat.completions.create(
                 messages=messages,
-                model="llama-3.3-70b-versatile", 
+                model="llama-3.3-70b-versatile",
+                temperature=0.7,  # Balanced creativity while maintaining accuracy
+                max_tokens=150,  # Keep responses concise for voice
             )
             ai_response = chat_completion.choices[0].message.content
+            
+            # Post-process to ensure boundaries (basic check)
+            if any(keyword in ai_response.lower() for keyword in ['i think', 'i believe', 'my opinion', 'personally']):
+                ai_response = config['fallback_msg'] + " Please contact the official helpline for detailed guidance."
+            
             log_transcript(call_sid, 'AI', ai_response)
             
             messages.append({"role": "assistant", "content": ai_response})
