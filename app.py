@@ -145,41 +145,54 @@ def dashboard():
 @app.route("/api/logs")
 def get_logs():
     """API for dashboard to fetch recent calls."""
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    # Get last 50 calls with their last message
-    c.execute("""
-        SELECT c.*, 
-        (SELECT message FROM transcripts t WHERE t.call_sid = c.call_sid ORDER BY t.id DESC LIMIT 1) as last_message
-        FROM calls c 
-        ORDER BY c.timestamp DESC LIMIT 50
-    """)
-    rows = [dict(row) for row in c.fetchall()]
-    conn.close()
-    return jsonify(rows)
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Get last 50 calls with their last message
+        c.execute("""
+            SELECT c.*, 
+            (SELECT message FROM transcripts t WHERE t.call_sid = c.call_sid ORDER BY t.id DESC LIMIT 1) as last_message
+            FROM calls c 
+            ORDER BY c.timestamp DESC LIMIT 50
+        """)
+        rows = [dict(row) for row in c.fetchall()]
+        conn.close()
+        return jsonify(rows)
+    except Exception as e:
+        print(f"Error fetching logs: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/download-logs")
 def download_logs():
     """Export all transcripts to CSV."""
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("""
-        SELECT c.timestamp, c.direction, c.from_number, c.to_number, t.role, t.message 
-        FROM transcripts t 
-        JOIN calls c ON t.call_sid = c.call_sid 
-        ORDER BY c.timestamp DESC, t.id ASC
-    """)
-    rows = c.fetchall()
-    conn.close()
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        c = conn.cursor()
+        c.execute("""
+            SELECT c.timestamp, c.direction, c.from_number, c.to_number, t.role, t.message 
+            FROM transcripts t 
+            JOIN calls c ON t.call_sid = c.call_sid 
+            ORDER BY c.timestamp DESC, t.id ASC
+        """)
+        rows = c.fetchall()
+        conn.close()
 
-    # Create CSV in memory
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['Call Time', 'Direction', 'From', 'To', 'Speaker', 'Message'])
-    writer.writerows(rows)
-    
-    return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment;filename=call_logs_full.csv"})
+        # Create CSV in memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Call Time', 'Direction', 'From', 'To', 'Speaker', 'Message'])
+        writer.writerows(rows)
+        
+        csv_content = output.getvalue()
+        return Response(
+            csv_content, 
+            mimetype="text/csv",
+            headers={"Content-Disposition": f"attachment;filename=call_logs_{datetime.now().strftime('%Y-%m-%d')}.csv"}
+        )
+    except Exception as e:
+        print(f"Error downloading logs: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/voice", methods=['GET', 'POST'])
 def voice():
@@ -311,46 +324,62 @@ def handle_input():
 
 @app.route("/make-call", methods=['POST'])
 def make_call():
-    to_numbers_raw = request.form.get('to_number')
-    webhook_url = request.form.get('webhook_url')
-    custom_message = request.form.get('custom_message')
-    
-    if not to_numbers_raw or not webhook_url:
-        return {"error": "Missing parameters"}, 400
+    try:
+        to_numbers_raw = request.form.get('to_number', '').strip()
+        webhook_url = request.form.get('webhook_url', '').strip()
+        custom_message = request.form.get('custom_message', '').strip()
+        
+        if not to_numbers_raw or not webhook_url:
+            return jsonify({"error": "Missing required parameters: to_number and webhook_url"}), 400
 
-    # Parse multiple numbers (split by comma)
-    to_numbers = [num.strip() for num in to_numbers_raw.replace('\n', ',').split(',') if num.strip()]
-    
-    # Append custom message to webhook URL if present
-    final_webhook_url = webhook_url
-    if custom_message:
-        from urllib.parse import quote
-        # Ensure we have ? or &
-        separator = '&' if '?' in webhook_url else '?'
-        final_webhook_url += f"{separator}custom_message={quote(custom_message)}"
-    
-    successful_calls = []
-    failed_calls = []
+        # Parse multiple numbers (split by comma or newline)
+        to_numbers = [num.strip() for num in to_numbers_raw.replace('\n', ',').split(',') if num.strip()]
+        
+        if not to_numbers:
+            return jsonify({"error": "Please provide at least one valid phone number"}), 400
 
-    for to_number in to_numbers:
-        try:
-            from_number = os.environ.get("TWILIO_PHONE_NUMBER")
-            call = twilio_client.calls.create(
-                to=to_number,
-                from_=from_number,
-                url=final_webhook_url
-            )
-            # Log Outbound Call Start
-            log_call(call.sid, from_number, to_number, 'Outbound')
-            successful_calls.append(to_number)
-        except Exception as e:
-            failed_calls.append({"number": to_number, "error": str(e)})
+        # Append custom message to webhook URL if present
+        final_webhook_url = webhook_url
+        if custom_message:
+            from urllib.parse import quote
+            # Ensure we have ? or &
+            separator = '&' if '?' in webhook_url else '?'
+            final_webhook_url += f"{separator}custom_message={quote(custom_message)}"
+        
+        successful_calls = []
+        failed_calls = []
 
-    return {
-        "message": f"Did connect {len(successful_calls)} calls. Failed: {len(failed_calls)}",
-        "successful": successful_calls,
-        "failed": failed_calls
-    }
+        for to_number in to_numbers:
+            try:
+                from_number = os.environ.get("TWILIO_PHONE_NUMBER")
+                if not from_number:
+                    raise ValueError("TWILIO_PHONE_NUMBER not configured in environment")
+                    
+                call = twilio_client.calls.create(
+                    to=to_number,
+                    from_=from_number,
+                    url=final_webhook_url
+                )
+                # Log Outbound Call Start
+                log_call(call.sid, from_number, to_number, 'Outbound')
+                successful_calls.append(to_number)
+            except Exception as e:
+                failed_calls.append({"number": to_number, "error": str(e)})
+                print(f"Failed to call {to_number}: {e}")
+
+        message = f"Initiated {len(successful_calls)} calls."
+        if failed_calls:
+            message += f" Failed: {len(failed_calls)}"
+            
+        return jsonify({
+            "message": message,
+            "successful": successful_calls,
+            "failed": failed_calls,
+            "total": len(to_numbers)
+        })
+    except Exception as e:
+        print(f"Error in make_call: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=8000)

@@ -15,9 +15,9 @@ const ContactInfo = () => {
   return (
     <div className="contact-info">
       <div className="contact-header">
-        <Building2 size={32} />
-        <h2>Contact Information</h2>
-        <p>Get in touch with Government of India services</p>
+        <Building2 size={40} />
+        <h2>Government Contact Information</h2>
+        <p>Get in touch with Government of India services and support</p>
       </div>
 
       <div className="contact-grid">
@@ -79,7 +79,7 @@ const ContactInfo = () => {
           <p>
             This AI-powered voice calling service is designed to assist citizens with government-related 
             queries and information. Our system supports both Hindi and English languages and is available 
-            24/7 for your convenience.
+            24/7 for your convenience. All calls are logged and documented for record-keeping purposes.
           </p>
         </div>
 
@@ -88,7 +88,7 @@ const ContactInfo = () => {
           <p>
             For technical issues or assistance with the calling service, please contact our support team 
             at <a href={`mailto:${contactDetails.email}`}>{contactDetails.email}</a> or call during 
-            business hours.
+            business hours at <a href={`tel:${contactDetails.phone}`}>{contactDetails.phone}</a>.
           </p>
         </div>
       </div>
@@ -97,4 +97,3 @@ const ContactInfo = () => {
 }
 
 export default ContactInfo
-
