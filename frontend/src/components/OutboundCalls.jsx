@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { PhoneOutgoing, Phone, RefreshCw, Download, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { API_URL } from '../config'
 
 const OutboundCalls = () => {
   const [logs, setLogs] = useState([])
@@ -13,7 +14,7 @@ const OutboundCalls = () => {
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/logs')
+      const response = await fetch(`${API_URL}/api/logs`)
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`)
       }
@@ -54,7 +55,7 @@ const OutboundCalls = () => {
       formDataToSend.append('custom_message', formData.custom_message)
       formDataToSend.append('webhook_url', formData.webhook_url)
 
-      const response = await fetch('http://localhost:8000/make-call', {
+      const response = await fetch(`${API_URL}/make-call`, {
         method: 'POST',
         body: formDataToSend
       })
@@ -83,7 +84,7 @@ const OutboundCalls = () => {
 
   const handleDownload = async () => {
     try {
-      const response = await fetch('http://localhost:8000/download-logs')
+      const response = await fetch(`${API_URL}/download-logs`)
       if (!response.ok) {
         throw new Error(`Download failed: ${response.status}`)
       }

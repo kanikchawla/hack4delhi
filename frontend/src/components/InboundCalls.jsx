@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { PhoneIncoming, Clock, MapPin, RefreshCw, Download } from 'lucide-react'
+import { API_URL } from '../config'
 
 const InboundCalls = () => {
   const [logs, setLogs] = useState([])
@@ -7,7 +8,7 @@ const InboundCalls = () => {
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/logs')
+      const response = await fetch(`${API_URL}/api/logs`)
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`)
       }
@@ -29,7 +30,7 @@ const InboundCalls = () => {
 
   const handleDownload = async () => {
     try {
-      const response = await fetch('http://localhost:8000/download-logs')
+      const response = await fetch(`${API_URL}/download-logs`)
       if (!response.ok) {
         throw new Error(`Download failed: ${response.status}`)
       }

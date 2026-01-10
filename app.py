@@ -14,7 +14,14 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
-CORS(app)  # Enable CORS for React frontend
+
+# Enable CORS for React frontend
+CORS(app, origins=[
+    "http://localhost:5175",           # Local development
+    "http://localhost:3000",           # Alternative local
+    "https://hack4delhi.vercel.app",   # Vercel frontend
+    "https://*.vercel.app"             # Any Vercel deployment
+])
 
 # Initialize Clients
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -382,4 +389,5 @@ def make_call():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8000)
+    port = int(os.environ.get('PORT', 8000))
+    app.run(host='0.0.0.0', port=port, debug=False)

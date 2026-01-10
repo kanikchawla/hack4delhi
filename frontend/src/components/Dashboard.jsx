@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Phone, Download, RefreshCw, BarChart3, Clock } from 'lucide-react'
+import { API_URL } from '../config'
 
 const Dashboard = () => {
   const [logs, setLogs] = useState([])
@@ -7,7 +8,7 @@ const Dashboard = () => {
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/logs')
+      const response = await fetch(`${API_URL}/api/logs`)
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`)
       }
@@ -29,7 +30,7 @@ const Dashboard = () => {
 
   const handleDownload = async () => {
     try {
-      const response = await fetch('http://localhost:8000/download-logs')
+      const response = await fetch(`${API_URL}/download-logs`)
       if (!response.ok) {
         throw new Error(`Download failed: ${response.status}`)
       }
@@ -45,7 +46,7 @@ const Dashboard = () => {
       window.URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Download error:', error)
-      alert('Failed to download logs. Make sure the backend is running on http://localhost:8000')
+      alert(`Failed to download logs. Make sure the backend is running on ${API_URL}`)
     }
   }
 

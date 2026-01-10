@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FileText, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { API_URL } from '../config';
 
 const Queries = () => {
   const [query, setQuery] = useState('');
@@ -16,7 +17,7 @@ const Queries = () => {
     setStatus({ type: 'loading', text: 'Syncing with Google Docs...' });
 
     try {
-      const res = await fetch('http://localhost:8000/api/submit-query', {
+      const res = await fetch(`${API_URL}/api/submit-query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, user: 'Dashboard Admin' })
