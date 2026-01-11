@@ -155,16 +155,6 @@ const OutboundCalls = () => {
               </ul>
             </div>
 
-            <div className="guide-section">
-              <h4>Setting Up Ngrok (For Local Testing):</h4>
-              <ol className="guide-list">
-                <li>Download and install <code>ngrok</code> from https://ngrok.com</li>
-                <li>Run: <code className="code-inline">ngrok http 5000</code></li>
-                <li>Copy the HTTPS URL provided (e.g., https://xyz.ngrok-free.app)</li>
-                <li>Append <code className="code-inline">/voice</code> to get your webhook URL</li>
-                <li>Use this URL in the form above</li>
-              </ol>
-            </div>
           </div>
         </div>
       </div>

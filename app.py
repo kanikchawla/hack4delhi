@@ -11,7 +11,20 @@ from twilio.rest import Client
 from groq import Groq
 from dotenv import load_dotenv
 
-load_dotenv()
+# PostgreSQL imports (with fallback to SQLite for compatibility)
+try:
+    import psycopg2
+    from psycopg2 import sql
+    USING_POSTGRES = True
+except ImportError:
+    USING_POSTGRES = False
+
+# Load environment variables from .env file (explicit path for reliability)
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+else:
+    load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -29,43 +42,150 @@ CORS(app, origins=[
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 twilio_client = Client(os.environ.get("TWILIO_ACCOUNT_SID"), os.environ.get("TWILIO_AUTH_TOKEN"))
 
-# Database Setup
-DB_NAME = "voice_agent.db"
+# Database Setup - PostgreSQL or SQLite
+DB_TYPE = os.environ.get("DB_TYPE", "sqlite").lower()
+
+if DB_TYPE == "postgres" and USING_POSTGRES:
+    DB_HOST = os.environ.get("DB_HOST", "localhost")
+    DB_PORT = int(os.environ.get("DB_PORT", 5432))
+    DB_USER = os.environ.get("DB_USER", "hack4delhi_user")
+    DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+    DB_NAME = os.environ.get("DB_NAME", "hack4delhi_db")
+    
+    def get_db_connection():
+        """Create a new PostgreSQL database connection."""
+        try:
+            conn = psycopg2.connect(
+                host=DB_HOST,
+                port=DB_PORT,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                database=DB_NAME
+            )
+            conn.autocommit = False
+            return conn
+        except psycopg2.OperationalError as e:
+            print(f"PostgreSQL connection error: {e}")
+            raise
+else:
+    # Fallback to SQLite
+    DB_NAME = "voice_agent.db"
+    
+    def get_db_connection():
+        """Create a new SQLite database connection."""
+        return sqlite3.connect(DB_NAME)
 
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    # Calls metadata
-    c.execute('''CREATE TABLE IF NOT EXISTS calls 
-                 (call_sid TEXT PRIMARY KEY, from_number TEXT, to_number TEXT, direction TEXT, timestamp TEXT)''')
-    # Transcripts
-    c.execute('''CREATE TABLE IF NOT EXISTS transcripts 
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT, call_sid TEXT, role TEXT, message TEXT, timestamp TEXT)''')
-    conn.commit()
-    conn.close()
+    """Initialize database tables."""
+    try:
+        if DB_TYPE == "postgres" and USING_POSTGRES:
+            conn = get_db_connection()
+            c = conn.cursor()
+            
+            # Create calls table
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS calls (
+                    call_sid TEXT PRIMARY KEY,
+                    from_number TEXT NOT NULL,
+                    to_number TEXT NOT NULL,
+                    direction TEXT NOT NULL,
+                    timestamp TIMESTAMP DEFAULT NOW()
+                )
+            ''')
+            
+            # Create transcripts table
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS transcripts (
+                    id SERIAL PRIMARY KEY,
+                    call_sid TEXT NOT NULL REFERENCES calls(call_sid) ON DELETE CASCADE,
+                    role TEXT NOT NULL,
+                    message TEXT,
+                    timestamp TIMESTAMP DEFAULT NOW()
+                )
+            ''')
+            
+            # Create queries table
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS queries (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT NOW(),
+                    user_name TEXT,
+                    query TEXT,
+                    status TEXT DEFAULT 'pending'
+                )
+            ''')
+            
+            # Create indexes for better performance
+            c.execute('''CREATE INDEX IF NOT EXISTS idx_calls_timestamp ON calls(timestamp DESC)''')
+            c.execute('''CREATE INDEX IF NOT EXISTS idx_transcripts_call_sid ON transcripts(call_sid)''')
+            
+            conn.commit()
+            conn.close()
+            print("PostgreSQL database initialized successfully!")
+        else:
+            # SQLite initialization
+            conn = sqlite3.connect(DB_NAME)
+            c = conn.cursor()
+            c.execute('''CREATE TABLE IF NOT EXISTS calls 
+                         (call_sid TEXT PRIMARY KEY, from_number TEXT, to_number TEXT, direction TEXT, timestamp TEXT)''')
+            c.execute('''CREATE TABLE IF NOT EXISTS transcripts 
+                         (id INTEGER PRIMARY KEY AUTOINCREMENT, call_sid TEXT, role TEXT, message TEXT, timestamp TEXT)''')
+            c.execute('''CREATE TABLE IF NOT EXISTS queries 
+                         (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, user TEXT, query TEXT, status TEXT)''')
+            conn.commit()
+            conn.close()
+            print("SQLite database initialized successfully!")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+        raise
 
 init_db()
 
 # --- Helpers ---
 def log_call(call_sid, from_number, to_number, direction):
+    """Log a call to the database."""
     try:
-        conn = sqlite3.connect(DB_NAME)
-        c = conn.cursor()
-        c.execute("INSERT OR IGNORE INTO calls (call_sid, from_number, to_number, direction, timestamp) VALUES (?, ?, ?, ?, ?)",
-                  (call_sid, from_number, to_number, direction, datetime.now().isoformat()))
-        conn.commit()
-        conn.close()
+        if DB_TYPE == "postgres" and USING_POSTGRES:
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO calls (call_sid, from_number, to_number, direction, timestamp)
+                VALUES (%s, %s, %s, %s, NOW())
+                ON CONFLICT (call_sid) DO NOTHING
+            """, (call_sid, from_number, to_number, direction))
+            conn.commit()
+            conn.close()
+        else:
+            # SQLite
+            conn = sqlite3.connect(DB_NAME)
+            c = conn.cursor()
+            c.execute("INSERT OR IGNORE INTO calls (call_sid, from_number, to_number, direction, timestamp) VALUES (?, ?, ?, ?, ?)",
+                      (call_sid, from_number, to_number, direction, datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
     except Exception as e:
         print(f"DB Error (Call Log): {e}")
 
 def log_transcript(call_sid, role, message):
+    """Log a transcript message to the database."""
     try:
-        conn = sqlite3.connect(DB_NAME)
-        c = conn.cursor()
-        c.execute("INSERT INTO transcripts (call_sid, role, message, timestamp) VALUES (?, ?, ?, ?)",
-                  (call_sid, role, message, datetime.now().isoformat()))
-        conn.commit()
-        conn.close()
+        if DB_TYPE == "postgres" and USING_POSTGRES:
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO transcripts (call_sid, role, message, timestamp)
+                VALUES (%s, %s, %s, NOW())
+            """, (call_sid, role, message))
+            conn.commit()
+            conn.close()
+        else:
+            # SQLite
+            conn = sqlite3.connect(DB_NAME)
+            c = conn.cursor()
+            c.execute("INSERT INTO transcripts (call_sid, role, message, timestamp) VALUES (?, ?, ?, ?)",
+                      (call_sid, role, message, datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
     except Exception as e:
         print(f"DB Error (Transcript): {e}")
 
@@ -155,18 +275,38 @@ def dashboard():
 def get_logs():
     """API for dashboard to fetch recent calls."""
     try:
-        conn = sqlite3.connect(DB_NAME)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        # Get last 50 calls with their last message
-        c.execute("""
-            SELECT c.*, 
-            (SELECT message FROM transcripts t WHERE t.call_sid = c.call_sid ORDER BY t.id DESC LIMIT 1) as last_message
-            FROM calls c 
-            ORDER BY c.timestamp DESC LIMIT 50
-        """)
-        rows = [dict(row) for row in c.fetchall()]
-        conn.close()
+        if DB_TYPE == "postgres" and USING_POSTGRES:
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute("""
+                SELECT 
+                    c.call_sid,
+                    c.from_number,
+                    c.to_number,
+                    c.direction,
+                    c.timestamp,
+                    (SELECT message FROM transcripts t WHERE t.call_sid = c.call_sid ORDER BY t.id DESC LIMIT 1) as last_message
+                FROM calls c 
+                ORDER BY c.timestamp DESC LIMIT 50
+            """)
+            
+            columns = [desc[0] for desc in c.description]
+            rows = [dict(zip(columns, row)) for row in c.fetchall()]
+            conn.close()
+        else:
+            # SQLite
+            conn = sqlite3.connect(DB_NAME)
+            conn.row_factory = sqlite3.Row
+            c = conn.cursor()
+            c.execute("""
+                SELECT c.*, 
+                (SELECT message FROM transcripts t WHERE t.call_sid = c.call_sid ORDER BY t.id DESC LIMIT 1) as last_message
+                FROM calls c 
+                ORDER BY c.timestamp DESC LIMIT 50
+            """)
+            rows = [dict(row) for row in c.fetchall()]
+            conn.close()
+        
         return jsonify(rows)
     except Exception as e:
         print(f"Error fetching logs: {e}")
@@ -176,16 +316,35 @@ def get_logs():
 def download_logs():
     """Export all transcripts to CSV."""
     try:
-        conn = sqlite3.connect(DB_NAME)
-        c = conn.cursor()
-        c.execute("""
-            SELECT c.timestamp, c.direction, c.from_number, c.to_number, t.role, t.message 
-            FROM transcripts t 
-            JOIN calls c ON t.call_sid = c.call_sid 
-            ORDER BY c.timestamp DESC, t.id ASC
-        """)
-        rows = c.fetchall()
-        conn.close()
+        if DB_TYPE == "postgres" and USING_POSTGRES:
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute("""
+                SELECT 
+                    c.timestamp::text,
+                    c.direction,
+                    c.from_number,
+                    c.to_number,
+                    t.role,
+                    t.message 
+                FROM transcripts t 
+                JOIN calls c ON t.call_sid = c.call_sid 
+                ORDER BY c.timestamp DESC, t.id ASC
+            """)
+            rows = c.fetchall()
+            conn.close()
+        else:
+            # SQLite
+            conn = sqlite3.connect(DB_NAME)
+            c = conn.cursor()
+            c.execute("""
+                SELECT c.timestamp, c.direction, c.from_number, c.to_number, t.role, t.message 
+                FROM transcripts t 
+                JOIN calls c ON t.call_sid = c.call_sid 
+                ORDER BY c.timestamp DESC, t.id ASC
+            """)
+            rows = c.fetchall()
+            conn.close()
 
         # Create CSV in memory
         output = io.StringIO()
@@ -401,19 +560,32 @@ def submit_query():
         if not query_text:
             return jsonify({"error": "Query text is required"}), 400
         
-        # Log to database (SQLite)
+        # Log to database (PostgreSQL or SQLite)
         try:
-            conn = sqlite3.connect(DB_NAME)
-            c = conn.cursor()
-            # Create queries table if it doesn't exist
-            c.execute('''CREATE TABLE IF NOT EXISTS queries 
-                         (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, user TEXT, query TEXT, status TEXT)''')
-            c.execute("INSERT INTO queries (timestamp, user, query, status) VALUES (?, ?, ?, ?)",
-                      (datetime.now().isoformat(), user, query_text, 'Submitted'))
-            conn.commit()
-            conn.close()
+            if DB_TYPE == "postgres" and USING_POSTGRES:
+                conn = get_db_connection()
+                c = conn.cursor()
+                c.execute("""
+                    INSERT INTO queries (timestamp, user_name, query, status)
+                    VALUES (NOW(), %s, %s, %s)
+                """, (user, query_text, 'Submitted'))
+                conn.commit()
+                conn.close()
+                db_status = "Stored in PostgreSQL"
+            else:
+                # SQLite
+                conn = sqlite3.connect(DB_NAME)
+                c = conn.cursor()
+                c.execute('''CREATE TABLE IF NOT EXISTS queries 
+                             (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, user TEXT, query TEXT, status TEXT)''')
+                c.execute("INSERT INTO queries (timestamp, user, query, status) VALUES (?, ?, ?, ?)",
+                          (datetime.now().isoformat(), user, query_text, 'Submitted'))
+                conn.commit()
+                conn.close()
+                db_status = "Stored in SQLite"
         except Exception as db_err:
             print(f"Database error: {db_err}")
+            db_status = f"Database error: {str(db_err)}"
         
         # Attempt to sync with Google Sheets (if configured)
         google_sync_status = "Not Configured"
@@ -465,7 +637,7 @@ def submit_query():
         
         return jsonify({
             "message": "Query submitted successfully",
-            "database": "Stored in SQLite",
+            "database": db_status,
             "google_sheets": google_sync_status
         }), 200
         

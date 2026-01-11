@@ -51,34 +51,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Overview Guide */}
-      <div className="card guide-card">
-        <div className="card-header">
-          <BarChart3 size={20} />
-          <h3>Dashboard Guide</h3>
-        </div>
-        <div className="card-body">
-          <div className="guide-content">
-            <p>
-              Welcome to the AI Sathi Government Voice Agent Dashboard. This system enables seamless communication 
-              between citizens and government services through AI-powered voice conversations.
-            </p>
-            
-            <div className="guide-section">
-              <h4>Main Features:</h4>
-              <ul className="guide-list">
-                <li><strong>Dashboard Home:</strong> Overview of all call statistics and recent activity</li>
-                <li><strong>Inbound Logs:</strong> Monitor calls initiated by citizens calling the government helpline</li>
-                <li><strong>Outbound Calls:</strong> Initiate calls to reach citizens with announcements and information</li>
-                <li><strong>Queries & Docs:</strong> Log and sync citizen queries to Google Docs for government records</li>
-                <li><strong>Govt Contact Info:</strong> Display contact information and service details</li>
-              </ul>
-            </div>
-
-
-          </div>
-        </div>
-      </div>
+      
 
       {/* Stats Cards */}
       <div className="stats-grid">
@@ -116,6 +89,34 @@ const Dashboard = () => {
           <div className="stat-content">
             <div className="stat-label">Outbound Calls</div>
             <div className="stat-value">{outboundLogs.length}</div>
+          </div>
+        </div>
+      </div>
+      {/* Overview Guide */}
+      <div className="card guide-card">
+        <div className="card-header">
+          <BarChart3 size={20} />
+          <h3>Dashboard Guide</h3>
+        </div>
+        <div className="card-body">
+          <div className="guide-content">
+            <p>
+              Welcome to the AI Sathi Government Voice Agent Dashboard. This system enables seamless communication 
+              between citizens and government services through AI-powered voice conversations.
+            </p>
+            
+            <div className="guide-section">
+              <h4>Main Features:</h4>
+              <ul className="guide-list">
+                <li><strong>Dashboard Home:</strong> Overview of all call statistics and recent activity</li>
+                <li><strong>Inbound Logs:</strong> Monitor calls initiated by citizens calling the government helpline</li>
+                <li><strong>Outbound Calls:</strong> Initiate calls to reach citizens with announcements and information</li>
+                <li><strong>Queries & Docs:</strong> Log and sync citizen queries to Google Docs for government records</li>
+                <li><strong>Govt Contact Info:</strong> Display contact information and service details</li>
+              </ul>
+            </div>
+
+
           </div>
         </div>
       </div>

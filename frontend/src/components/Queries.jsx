@@ -68,7 +68,7 @@ const Queries = () => {
             
             <button type="submit" className="btn-primary btn-block" disabled={status?.type === 'loading'}>
               <Send size={18} />
-              {status?.type === 'loading' ? 'Syncing...' : 'Save'}
+              {status?.type === 'loading' ? 'Syncing...' : 'Send'}
             </button>
           </form>
 
