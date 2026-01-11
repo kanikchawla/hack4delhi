@@ -76,7 +76,7 @@ const OutboundCalls = () => {
     } catch (error) {
       console.error('Make call error:', error)
       const errorMessage = error.message.includes('Failed to fetch')
-        ? 'Cannot connect to backend server. Make sure Flask is running on http://localhost:5000'
+        ? `Cannot connect to backend server. Make sure the backend is running on ${API_URL}`
         : `Error: ${error.message}`
       setCallStatus({ type: 'error', message: errorMessage })
     }
@@ -103,7 +103,7 @@ const OutboundCalls = () => {
       setTimeout(() => setCallStatus(null), 3000)
     } catch (error) {
       console.error('Download error:', error)
-      setCallStatus({ type: 'error', message: 'Failed to download logs. Check backend connection on http://localhost:8000' })
+      setCallStatus({ type: 'error', message: `Failed to download logs. Check backend connection on ${API_URL}` })
     }
   }
 

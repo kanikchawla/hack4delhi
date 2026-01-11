@@ -17,7 +17,8 @@ app.secret_key = 'supersecretkey'
 
 # Enable CORS for React frontend
 CORS(app, origins=[
-    "http://localhost:5175",           # Local development
+    "http://localhost:5175",           # Local development (older default)
+    "http://localhost:5174",           # Vite dev server (configured port)
     "http://localhost:3000",           # Alternative local
     "https://hack4delhi.vercel.app",   # Vercel frontend
     "https://*.vercel.app"             # Any Vercel deployment

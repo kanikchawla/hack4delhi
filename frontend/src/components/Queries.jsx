@@ -34,7 +34,7 @@ const Queries = () => {
     } catch (err) {
       console.error('Query submit error:', err)
       const errorMsg = err.message.includes('Failed to fetch')
-        ? 'Cannot connect to backend server. Make sure Flask is running on http://localhost:8000'
+        ? `Cannot connect to backend server. Make sure the backend is running on ${API_URL}`
         : `Error: ${err.message}`
       setStatus({ type: 'error', text: errorMsg });
     }

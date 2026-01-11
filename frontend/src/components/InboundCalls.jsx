@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { PhoneIncoming, Clock, MapPin, RefreshCw, Download } from 'lucide-react'
 import { API_URL } from '../config'
 
+
 const InboundCalls = () => {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -46,7 +47,7 @@ const InboundCalls = () => {
       window.URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Download error:', error)
-      alert('Failed to download logs. Make sure the backend is running on http://localhost:8000')
+      alert(`Failed to download logs. Make sure the backend is running on ${API_URL}`)
     }
   }
 
