@@ -142,51 +142,33 @@ const InboundCalls = () => {
         </div>
       </div>
 
-      {/* Calls Table */}
-      <div className="card">
-        <div className="card-header">
-          <h3>Recent Inbound Calls</h3>
-        </div>
-        <div className="card-body">
-          {loading ? (
-            <div className="loading">Loading calls...</div>
-          ) : logs.length === 0 ? (
-            <div className="empty-state">
-              <PhoneIncoming size={40} />
-              <p>No inbound calls yet</p>
-              <p className="sub-text">Citizens will appear here once they call the government helpline</p>
+      {/* Recent Calls Highlight */}
+      {!loading && logs.length > 0 && (
+        <div className="card">
+          <div className="card-header">
+            <Clock size={20} />
+            <h3>Recent Calls (Last 5)</h3>
+          </div>
+          <div className="card-body">
+            <div className="recent-calls-list">
+              {logs.slice(0, 5).map((log) => (
+                <div key={log.call_sid} className="recent-call-item">
+                  <div className="recent-call-time">
+                    <Clock size={16} />
+                    <span>{new Date(log.timestamp).toLocaleString()}</span>
+                  </div>
+                  <div className="recent-call-details">
+                    <div className="call-number"><strong>From:</strong> {log.from_number}</div>
+                    <div className="call-message">{log.last_message || <em className="text-muted">No message yet</em>}</div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ) : (
-            <div className="logs-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Call Time</th>
-                    <th>From Number</th>
-                    <th>To Number</th>
-                    <th>Call SID</th>
-                    <th>Last Message</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log) => (
-                    <tr key={log.call_sid}>
-                      <td>
-                        <Clock size={14} />
-                        {new Date(log.timestamp).toLocaleString()}
-                      </td>
-                      <td className="highlight-cell">{log.from_number}</td>
-                      <td>{log.to_number}</td>
-                      <td><code>{log.call_sid}</code></td>
-                      <td className="transcript">{log.last_message || <em>Ongoing...</em>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
+      
     </div>
   )
 }

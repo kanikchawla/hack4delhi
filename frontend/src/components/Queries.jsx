@@ -14,7 +14,7 @@ const Queries = () => {
       return;
     }
 
-    setStatus({ type: 'loading', text: 'Syncing with Google Docs...' });
+    setStatus({ type: 'loading', text: 'Syncing...' });
 
     try {
       const res = await fetch(`${API_URL}/api/submit-query`, {
@@ -28,7 +28,7 @@ const Queries = () => {
       }
 
       const data = await res.json();
-      setStatus({ type: 'success', text: 'Query saved to Google Docs successfully!' });
+      setStatus({ type: 'success', text: 'Query sent successfully!' });
       setQuery('');
       setTimeout(() => setStatus(null), 3000);
     } catch (err) {
@@ -49,7 +49,7 @@ const Queries = () => {
       <div className="card">
         <div className="card-header">
           <FileText size={20} />
-          <h3>Log New Query</h3>
+          <h3>Make a Query</h3>
         </div>
         <div className="card-body">
           <form onSubmit={handleSubmit} className="call-form">
@@ -59,16 +59,16 @@ const Queries = () => {
                 id="query-input"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Type the citizen's query or grievance here..."
+                placeholder="Type your query here..."
                 rows="6"
                 required
               />
-              <small>This will be automatically synced to the Central Government Database (Google Doc).</small>
+              <small>This will be automatically synced to the Central Government Database.</small>
             </div>
             
             <button type="submit" className="btn-primary btn-block" disabled={status?.type === 'loading'}>
               <Send size={18} />
-              {status?.type === 'loading' ? 'Syncing...' : 'Save to Docs'}
+              {status?.type === 'loading' ? 'Syncing...' : 'Save'}
             </button>
           </form>
 

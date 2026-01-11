@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
+import CallLogs from './components/CallLogs';
 import InboundCalls from './components/InboundCalls';
 import OutboundCalls from './components/OutboundCalls';
 import Queries from './components/Queries';
@@ -16,6 +17,8 @@ function App() {
     switch(activeView) {
       case 'dashboard':
         return <Dashboard />;
+      case 'calllogs':
+        return <CallLogs />;
       case 'inbound':
         return <InboundCalls />;
       case 'outbound':
@@ -44,8 +47,8 @@ function App() {
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
           <div className="header-branding">
-            <h1 className="app-title">AI Sathi</h1>
-            <span className="badge">Government Voice Agent</span>
+            <h1 className="app-title">Government Voice Agent</h1>
+            <span className="badge">Powered by MACbook</span>
           </div>
         </header>
         

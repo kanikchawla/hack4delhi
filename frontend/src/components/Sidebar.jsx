@@ -1,11 +1,12 @@
-import { Phone, PhoneIncoming, PhoneOutgoing, FileText, BarChart3, Info, X } from 'lucide-react';
+import { Phone, PhoneIncoming, PhoneOutgoing, FileText, BarChart3, Info, X, History } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose, activeView, setActiveView }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard Home', icon: BarChart3 },
+    { id: 'calllogs', label: 'Call Logs', icon: History },
     { id: 'inbound', label: 'Inbound Logs', icon: PhoneIncoming },
     { id: 'outbound', label: 'Outbound Calls', icon: PhoneOutgoing },
-    { id: 'queries', label: 'Queries & Docs', icon: FileText },
+    { id: 'queries', label: 'Queries', icon: FileText },
     { id: 'contact', label: 'Govt Contact Info', icon: Info },
   ];
 

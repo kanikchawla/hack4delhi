@@ -28,27 +28,7 @@ const Dashboard = () => {
     return () => clearInterval(interval)
   }, [])
 
-  const handleDownload = async () => {
-    try {
-      const response = await fetch(`${API_URL}/download-logs`)
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.status}`)
-      }
-      
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `call_logs_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Download error:', error)
-      alert(`Failed to download logs. Make sure the backend is running on ${API_URL}`)
-    }
-  }
+  
 
   const inboundLogs = logs.filter(log => log.direction === 'Inbound')
   const outboundLogs = logs.filter(log => log.direction === 'Outbound')
@@ -67,10 +47,7 @@ const Dashboard = () => {
           <button onClick={fetchLogs} className="btn-icon" title="Refresh logs" aria-label="Refresh">
             <RefreshCw size={20} />
           </button>
-          <button onClick={handleDownload} className="btn-primary">
-            <Download size={18} />
-            Download All Logs
-          </button>
+          
         </div>
       </div>
 
@@ -98,36 +75,7 @@ const Dashboard = () => {
               </ul>
             </div>
 
-            <div className="guide-section">
-              <h4>How Citizens Call (Inbound):</h4>
-              <ol className="guide-list">
-                <li>Citizen dials the government helpline number</li>
-                <li>Selects language preference (Hindi or English)</li>
-                <li>AI assistant responds to their queries about government schemes</li>
-                <li>Call is logged automatically</li>
-              </ol>
-            </div>
 
-            <div className="guide-section">
-              <h4>How to Make Outbound Calls:</h4>
-              <ol className="guide-list">
-                <li>Go to "Outbound Calls" in the sidebar</li>
-                <li>Enter phone numbers to call</li>
-                <li>Add custom announcement message (optional)</li>
-                <li>Provide ngrok webhook URL</li>
-                <li>Click "Initiate Calls"</li>
-              </ol>
-            </div>
-
-            <div className="guide-section important">
-              <h4>⚠️ Quick Setup Checklist:</h4>
-              <ul className="guide-list">
-                <li>✓ Twilio credentials configured in .env</li>
-                <li>✓ Groq API key for LLaMA AI model</li>
-                <li>✓ ngrok running for webhook access (for outbound)</li>
-                <li>✓ Database initialized (voice_agent.db)</li>
-              </ul>
-            </div>
           </div>
         </div>
       </div>
@@ -173,56 +121,8 @@ const Dashboard = () => {
       </div>
 
       {/* Recent Calls Section */}
-      <div className="card">
-        <div className="card-header">
-          <h3>Recent Calls (All Types)</h3>
-        </div>
-        <div className="card-body">
-          {loading ? (
-            <div className="loading">Loading calls...</div>
-          ) : logs.length === 0 ? (
-            <div className="empty-state">
-              <Phone size={40} />
-              <p>No calls yet</p>
-              <p className="sub-text">Calls will appear here as citizens call the helpline or outbound calls are initiated</p>
-            </div>
-          ) : (
-            <div className="logs-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Call Time</th>
-                    <th>Direction</th>
-                    <th>From/To Number</th>
-                    <th>Call SID</th>
-                    <th>Last Message</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.slice(0, 20).map((log) => (
-                    <tr key={log.call_sid}>
-                      <td>
-                        <Clock size={14} />
-                        {new Date(log.timestamp).toLocaleString()}
-                      </td>
-                      <td>
-                        <span className={`status-badge ${log.direction === 'Inbound' ? 'success' : 'warning'}`}>
-                          {log.direction}
-                        </span>
-                      </td>
-                      <td className="highlight-cell">
-                        {log.direction === 'Inbound' ? log.from_number : log.to_number}
-                      </td>
-                      <td><code>{log.call_sid}</code></td>
-                      <td className="transcript">{log.last_message || <em>No message</em>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
+     
+      
     </div>
   )
 }

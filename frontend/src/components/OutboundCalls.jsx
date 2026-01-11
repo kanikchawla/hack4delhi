@@ -165,17 +165,6 @@ const OutboundCalls = () => {
                 <li>Use this URL in the form above</li>
               </ol>
             </div>
-
-            <div className="guide-section important">
-              <h4>⚠️ Important Notes:</h4>
-              <ul className="guide-list">
-                <li>Twilio account must be configured with valid API credentials</li>
-                <li>Recipient numbers must be verified in Twilio (for trial accounts)</li>
-                <li>Webhook URL must be publicly accessible (ngrok provides this)</li>
-                <li>Custom message will be the first greeting citizens hear</li>
-                <li>Each call will be logged with timestamp and transcript</li>
-              </ul>
-            </div>
           </div>
         </div>
       </div>
@@ -277,53 +266,33 @@ const OutboundCalls = () => {
         </div>
       </div>
 
-      {/* Calls Table */}
-      <div className="card">
-        <div className="card-header">
-          <h3>Recent Outbound Calls</h3>
-        </div>
-        <div className="card-body">
-          {loading ? (
-            <div className="loading">Loading calls...</div>
-          ) : logs.length === 0 ? (
-            <div className="empty-state">
-              <PhoneOutgoing size={40} />
-              <p>No outbound calls yet</p>
-              <p className="sub-text">Calls initiated through this interface will appear here</p>
+      {/* Recent Calls Highlight */}
+      {!loading && logs.length > 0 && (
+        <div className="card">
+          <div className="card-header">
+            <Clock size={20} />
+            <h3>Recent Calls (Last 5)</h3>
+          </div>
+          <div className="card-body">
+            <div className="recent-calls-list">
+              {logs.slice(0, 5).map((log) => (
+                <div key={log.call_sid} className="recent-call-item">
+                  <div className="recent-call-time">
+                    <Clock size={16} />
+                    <span>{new Date(log.timestamp).toLocaleString()}</span>
+                  </div>
+                  <div className="recent-call-details">
+                    <div className="call-number"><strong>To:</strong> {log.to_number}</div>
+                    <div className="call-message">Call SID: <code>{log.call_sid}</code></div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ) : (
-            <div className="logs-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Call Time</th>
-                    <th>From Number</th>
-                    <th>To Number</th>
-                    <th>Call SID</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log) => (
-                    <tr key={log.call_sid}>
-                      <td>
-                        <Clock size={14} />
-                        {new Date(log.timestamp).toLocaleString()}
-                      </td>
-                      <td>{log.from_number}</td>
-                      <td className="highlight-cell">{log.to_number}</td>
-                      <td><code>{log.call_sid}</code></td>
-                      <td>
-                        <span className="status-badge success">Active</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
+      
     </div>
   )
 }

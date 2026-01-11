@@ -78,7 +78,7 @@ body {
 }
 
 .sidebar-header {
-  background: linear-gradient(135deg, var(--navy) 0%, #1a1a6b 100%);
+  background: linear-gradient(135deg, var(--saffron) 0%, #0c590e 100%);
   color: white;
   padding: 1.5rem;
   display: flex;
@@ -479,6 +479,7 @@ body {
 
 .logs-table {
   overflow-x: auto;
+  width: 100%;
 }
 
 .logs-table table {
@@ -497,14 +498,23 @@ body {
   font-weight: 600;
   color: var(--navy);
   border-bottom: 2px solid var(--border-color);
+  white-space: nowrap;
 }
 
 .logs-table td {
   padding: 1rem;
   border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  vertical-align: middle;
+}
+
+.logs-table td svg {
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.logs-table tbody tr {
+  transition: var(--transition);
 }
 
 .logs-table tbody tr:hover {
@@ -518,13 +528,14 @@ body {
   font-family: 'Courier New', monospace;
   color: #d946ef;
   font-size: 0.85rem;
+  word-break: break-all;
 }
 
 .logs-table .transcript {
-  max-width: 200px;
+  max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  word-wrap: break-word;
 }
 
 .loading,
@@ -1028,6 +1039,18 @@ body {
     padding: 0.75rem 0.5rem;
   }
 
+  .logs-table th {
+    font-size: 0.75rem;
+  }
+
+  .logs-table code {
+    font-size: 0.7rem;
+  }
+
+  .logs-table .transcript {
+    max-width: 150px;
+  }
+
   .stat-card {
     flex-direction: column;
     text-align: center;
@@ -1049,5 +1072,153 @@ body {
   .guide-list {
     padding-left: 1rem;
     font-size: 0.9rem;
+  }
+}
+
+/* ============ FILTER BUTTONS ============ */
+.filter-buttons {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 0.625rem 1.25rem;
+  background: white;
+  border: 2px solid var(--border-color);
+  color: var(--light-text);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-btn:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+  background: var(--light-navy);
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, var(--navy) 0%, #000060 100%);
+  color: white;
+  border-color: var(--navy);
+  box-shadow: var(--shadow-md);
+}
+
+/* ============ DIRECTION BADGE ============ */
+.direction-badge {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.direction-badge.inbound {
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.15) 0%, rgba(22, 163, 74, 0.05) 100%);
+  color: #16A34A;
+}
+
+.direction-badge.outbound {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+  color: #3B82F6;
+}
+
+/* ============ RECENT CALLS SECTION ============ */
+.recent-calls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.recent-call-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--light-navy) 0%, rgba(240, 242, 250, 0.5) 100%);
+  border-left: 4px solid var(--navy);
+  border-radius: 8px;
+  transition: var(--transition);
+}
+
+.recent-call-item:hover {
+  background: linear-gradient(135deg, rgba(240, 242, 250, 0.8) 0%, rgba(240, 242, 250, 0.3) 100%);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(4px);
+}
+
+.recent-call-time {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 180px;
+  color: var(--navy);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.recent-call-time svg {
+  color: var(--saffron);
+  flex-shrink: 0;
+}
+
+.recent-call-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.call-number {
+  font-size: 0.95rem;
+  color: var(--dark-text);
+  font-weight: 500;
+}
+
+.call-number strong {
+  color: var(--navy);
+}
+
+.call-message {
+  font-size: 0.9rem;
+  color: var(--light-text);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.call-message code {
+  background-color: rgba(0, 0, 128, 0.1);
+  color: var(--navy);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.call-message .text-muted {
+  color: #999;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .recent-call-item {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .recent-call-time {
+    min-width: auto;
+  }
+
+  .call-message {
+    font-size: 0.85rem;
   }
 }

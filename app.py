@@ -2,6 +2,7 @@ import os
 import csv
 import sqlite3
 import io
+import json
 from datetime import datetime
 from flask import Flask, request, session, render_template, jsonify, Response
 from flask_cors import CORS
@@ -387,6 +388,89 @@ def make_call():
         })
     except Exception as e:
         print(f"Error in make_call: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/submit-query", methods=['POST'])
+def submit_query():
+    """Submit a query/grievance (to be synced with Google Sheets if configured)."""
+    try:
+        data = request.get_json()
+        query_text = data.get('query', '').strip()
+        user = data.get('user', 'Unknown User')
+        
+        if not query_text:
+            return jsonify({"error": "Query text is required"}), 400
+        
+        # Log to database (SQLite)
+        try:
+            conn = sqlite3.connect(DB_NAME)
+            c = conn.cursor()
+            # Create queries table if it doesn't exist
+            c.execute('''CREATE TABLE IF NOT EXISTS queries 
+                         (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, user TEXT, query TEXT, status TEXT)''')
+            c.execute("INSERT INTO queries (timestamp, user, query, status) VALUES (?, ?, ?, ?)",
+                      (datetime.now().isoformat(), user, query_text, 'Submitted'))
+            conn.commit()
+            conn.close()
+        except Exception as db_err:
+            print(f"Database error: {db_err}")
+        
+        # Attempt to sync with Google Sheets (if configured)
+        google_sync_status = "Not Configured"
+        try:
+            from google.oauth2.service_account import Credentials
+            from google.auth.transport.requests import Request
+            from googleapiclient.discovery import build
+            
+            credentials_path = os.environ.get('GOOGLE_SHEETS_CREDENTIALS_JSON')
+            sheet_id = os.environ.get('GOOGLE_SHEETS_SHEET_ID')
+            
+            if credentials_path and sheet_id and os.path.exists(credentials_path):
+                try:
+                    # Load credentials from JSON file
+                    credentials = Credentials.from_service_account_file(
+                        credentials_path,
+                        scopes=['https://www.googleapis.com/auth/spreadsheets']
+                    )
+                    
+                    # Build the Sheets API client
+                    service = build('sheets', 'v4', credentials=credentials)
+                    
+                    # Prepare the data to append
+                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    values = [[timestamp, user, query_text, 'Submitted']]
+                    
+                    # Append to the sheet (assumes headers in first row)
+                    body = {'values': values}
+                    result = service.spreadsheets().values().append(
+                        spreadsheetId=sheet_id,
+                        range='Sheet1!A:D',
+                        valueInputOption='USER_ENTERED',
+                        body=body
+                    ).execute()
+                    
+                    google_sync_status = "Synced to Google Sheets"
+                    print(f"Successfully appended to sheet: {result}")
+                    
+                except Exception as sheets_err:
+                    google_sync_status = f"Google Sheets error: {str(sheets_err)}"
+                    print(f"Google Sheets sync error: {sheets_err}")
+            else:
+                google_sync_status = "Google Sheets not configured"
+        except ImportError:
+            google_sync_status = "Google API libraries not installed"
+        except Exception as google_err:
+            google_sync_status = f"Error: {str(google_err)}"
+            print(f"Google integration error: {google_err}")
+        
+        return jsonify({
+            "message": "Query submitted successfully",
+            "database": "Stored in SQLite",
+            "google_sheets": google_sync_status
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in submit_query: {e}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
