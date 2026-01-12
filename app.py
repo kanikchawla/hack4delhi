@@ -30,13 +30,18 @@ app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
 # Enable CORS for React frontend
-CORS(app, origins=[
-    "http://localhost:5175",
-    "http://localhost:5174",
-    "http://localhost:3000",
-    "https://hack4delhi.vercel.app",
-    "https://hack4delhi-1.onrender.com"
-])
+CORS(app, 
+     origins=[
+         "http://localhost:5175",
+         "http://localhost:5174",
+         "http://localhost:3000",
+         "https://hack4delhi.vercel.app",
+         "https://hack4delhi-1.onrender.com"
+     ],
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+)
 
 # Initialize Clients
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
