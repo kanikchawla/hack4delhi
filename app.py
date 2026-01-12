@@ -35,6 +35,7 @@ CORS(app, origins=[
     "http://localhost:5174",           # Vite dev server (configured port)
     "http://localhost:3000",           # Alternative local
     "https://hack4delhi.vercel.app",   # Vercel frontend
+    "https://hack4delhi-1.onrender.com/"
     "https://*.vercel.app"             # Any Vercel deployment
 ])
 
