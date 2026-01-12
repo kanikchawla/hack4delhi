@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Phone, Download, RefreshCw, BarChart3, Clock } from 'lucide-react'
+import { useLanguage } from '../context/LanguageContext'
+import { translations } from '../translations/en-hi'
 import { API_URL } from '../config'
 
 const Dashboard = () => {
+  const { language } = useLanguage()
+  const t = translations[language] || translations['en']
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -42,9 +46,9 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h2>Dashboard Overview</h2>
+        <h2>{t.dashboardOverview}</h2>
         <div className="header-actions">
-          <button onClick={fetchLogs} className="btn-icon" title="Refresh logs" aria-label="Refresh">
+          <button onClick={fetchLogs} className="btn-icon" title={t.refreshLogs} aria-label="Refresh">
             <RefreshCw size={20} />
           </button>
           
@@ -60,7 +64,7 @@ const Dashboard = () => {
             <Phone size={24} />
           </div>
           <div className="stat-content">
-            <div className="stat-label">Total Calls</div>
+            <div className="stat-label">{t.totalCalls}</div>
             <div className="stat-value">{totalCalls}</div>
           </div>
         </div>
@@ -69,7 +73,7 @@ const Dashboard = () => {
             <Clock size={24} />
           </div>
           <div className="stat-content">
-            <div className="stat-label">Last 24 Hours</div>
+            <div className="stat-label">{t.last24Hours}</div>
             <div className="stat-value">{last24h}</div>
           </div>
         </div>
@@ -78,7 +82,7 @@ const Dashboard = () => {
             <Phone size={24} />
           </div>
           <div className="stat-content">
-            <div className="stat-label">Inbound Calls</div>
+            <div className="stat-label">{t.inboundCalls}</div>
             <div className="stat-value">{inboundLogs.length}</div>
           </div>
         </div>
@@ -87,7 +91,7 @@ const Dashboard = () => {
             <Phone size={24} />
           </div>
           <div className="stat-content">
-            <div className="stat-label">Outbound Calls</div>
+            <div className="stat-label">{t.outboundCallsCount}</div>
             <div className="stat-value">{outboundLogs.length}</div>
           </div>
         </div>
@@ -96,23 +100,22 @@ const Dashboard = () => {
       <div className="card guide-card">
         <div className="card-header">
           <BarChart3 size={20} />
-          <h3>Dashboard Guide</h3>
+          <h3>{t.dashboardGuide}</h3>
         </div>
         <div className="card-body">
           <div className="guide-content">
             <p>
-              Welcome to the AI Sathi Government Voice Agent Dashboard. This system enables seamless communication 
-              between citizens and government services through AI-powered voice conversations.
+              {t.welcomeMessage}
             </p>
             
             <div className="guide-section">
-              <h4>Main Features:</h4>
+              <h4>{t.mainFeatures}</h4>
               <ul className="guide-list">
-                <li><strong>Dashboard Home:</strong> Overview of all call statistics and recent activity</li>
-                <li><strong>Inbound Logs:</strong> Monitor calls initiated by citizens calling the government helpline</li>
-                <li><strong>Outbound Calls:</strong> Initiate calls to reach citizens with announcements and information</li>
-                <li><strong>Queries & Docs:</strong> Log and sync citizen queries to Google Docs for government records</li>
-                <li><strong>Govt Contact Info:</strong> Display contact information and service details</li>
+                <li><strong>{t.dashboardHome}:</strong> {t.dashboardHomeDesc}</li>
+                <li><strong>{t.inboundLogs}:</strong> {t.inboundLogsDesc}</li>
+                <li><strong>{t.outboundCalls}:</strong> {t.outboundCallsDesc}</li>
+                <li><strong>{t.queries}:</strong> {t.queriesDocsDesc}</li>
+                <li><strong>{t.govContactInfo}:</strong> {t.govContactInfoDesc}</li>
               </ul>
             </div>
 

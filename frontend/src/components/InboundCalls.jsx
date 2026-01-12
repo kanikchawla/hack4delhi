@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react'
 import { PhoneIncoming, Clock, MapPin, RefreshCw, Download } from 'lucide-react'
+import { useLanguage } from '../context/LanguageContext'
+import { translations } from '../translations/en-hi'
 import { API_URL } from '../config'
 
 
 const InboundCalls = () => {
+  const { language } = useLanguage()
+  const t = translations[language] || translations['en']
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -54,14 +58,14 @@ const InboundCalls = () => {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h2>Inbound Calls Monitor</h2>
+        <h2>{t.inboundCallsMonitor}</h2>
         <div className="header-actions">
-          <button onClick={fetchLogs} className="btn-icon" title="Refresh logs" aria-label="Refresh">
+          <button onClick={fetchLogs} className="btn-icon" title={t.refreshLogs} aria-label={t.refreshLogs}>
             <RefreshCw size={20} />
           </button>
           <button onClick={handleDownload} className="btn-primary">
             <Download size={18} />
-            Download Logs
+            {t.downloadLogs}
           </button>
         </div>
       </div>
@@ -70,46 +74,44 @@ const InboundCalls = () => {
       <div className="card guide-card">
         <div className="card-header">
           <PhoneIncoming size={20} />
-          <h3>About Inbound Calls</h3>
+          <h3>{t.aboutInboundCalls}</h3>
         </div>
         <div className="card-body">
           <div className="guide-content">
             <p>
-              <strong>Inbound calls</strong> are calls initiated by citizens calling the government AI voice agent system. 
-              These calls are automatically routed to our AI assistant which helps citizens with government schemes, services, 
-              and information in both Hindi and English.
+              {t.inboundCallsIntro}
             </p>
             
             <div className="guide-section">
-              <h4>How It Works:</h4>
+              <h4>{t.howItWorks}</h4>
               <ol className="guide-list">
-                <li>Citizen calls the government helpline number</li>
-                <li>System asks caller to select language (Hindi=1, English=2)</li>
-                <li>AI assistant provides personalized guidance</li>
-                <li>Conversation is recorded and logged automatically</li>
-                <li>Data is stored for government records and analysis</li>
+                <li>{t.howItWorksSteps[0]}</li>
+                <li>{t.howItWorksSteps[1]}</li>
+                <li>{t.howItWorksSteps[2]}</li>
+                <li>{t.howItWorksSteps[3]}</li>
+                <li>{t.howItWorksSteps[4]}</li>
               </ol>
             </div>
 
             <div className="guide-section">
-              <h4>Key Features:</h4>
+              <h4>{t.keyFeatures}</h4>
               <ul className="guide-list">
-                <li>24/7 availability - citizens can call anytime</li>
-                <li>Bilingual support (Hindi & English)</li>
-                <li>Real-time AI responses using Groq LLaMA 3.3</li>
-                <li>Complete transcripts for record keeping</li>
-                <li>Automatic government scheme information</li>
+                <li>{t.keyFeaturesList[0]}</li>
+                <li>{t.keyFeaturesList[1]}</li>
+                <li>{t.keyFeaturesList[2]}</li>
+                <li>{t.keyFeaturesList[3]}</li>
+                <li>{t.keyFeaturesList[4]}</li>
               </ul>
             </div>
 
             <div className="guide-section">
-              <h4>Call Information Captured:</h4>
+              <h4>{t.callInformationCaptured}</h4>
               <ul className="guide-list">
-                <li>Call timestamp and duration</li>
-                <li>Caller phone number (From)</li>
-                <li>Government number called (To)</li>
-                <li>Complete transcript of conversation</li>
-                <li>Call SID for reference</li>
+                <li>{t.callInformationList[0]}</li>
+                <li>{t.callInformationList[1]}</li>
+                <li>{t.callInformationList[2]}</li>
+                <li>{t.callInformationList[3]}</li>
+                <li>{t.callInformationList[4]}</li>
               </ul>
             </div>
           </div>
@@ -123,7 +125,7 @@ const InboundCalls = () => {
             <PhoneIncoming size={24} />
           </div>
           <div className="stat-content">
-            <div className="stat-label">Total Inbound Calls</div>
+            <div className="stat-label">{t.totalInboundCalls}</div>
             <div className="stat-value">{logs.length}</div>
           </div>
         </div>
@@ -132,7 +134,7 @@ const InboundCalls = () => {
             <Clock size={24} />
           </div>
           <div className="stat-content">
-            <div className="stat-label">Last 24 Hours</div>
+            <div className="stat-label">{t.last24Hours}</div>
             <div className="stat-value">{logs.filter(l => {
               const callTime = new Date(l.timestamp);
               const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -147,7 +149,7 @@ const InboundCalls = () => {
         <div className="card">
           <div className="card-header">
             <Clock size={20} />
-            <h3>Recent Calls (Last 5)</h3>
+            <h3>{t.recentCallsLast5}</h3>
           </div>
           <div className="card-body">
             <div className="recent-calls-list">
@@ -158,8 +160,8 @@ const InboundCalls = () => {
                     <span>{new Date(log.timestamp).toLocaleString()}</span>
                   </div>
                   <div className="recent-call-details">
-                    <div className="call-number"><strong>From:</strong> {log.from_number}</div>
-                    <div className="call-message">{log.last_message || <em className="text-muted">No message yet</em>}</div>
+                    <div className="call-number"><strong>{t.from}:</strong> {log.from_number}</div>
+                    <div className="call-message">{log.last_message || <em className="text-muted">{t.noMessage}</em>}</div>
                   </div>
                 </div>
               ))}

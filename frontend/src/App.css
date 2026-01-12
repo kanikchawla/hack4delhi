@@ -1208,6 +1208,33 @@ body {
   font-style: italic;
 }
 
+/* ============ LANGUAGE TOGGLE BUTTON ============ */
+.language-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--light-saffron);
+  border: 2px solid var(--saffron);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--primary-color);
+  transition: var(--transition);
+  font-size: 0.9rem;
+  margin-right: 1rem;
+}
+
+.language-toggle-btn:hover {
+  background-color: var(--saffron);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.language-toggle-btn:active {
+  transform: translateY(0);
+}
+
 @media (max-width: 768px) {
   .recent-call-item {
     flex-direction: column;
@@ -1220,5 +1247,16 @@ body {
 
   .call-message {
     font-size: 0.85rem;
+  }
+
+  .language-toggle-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    margin-right: 0.5rem;
+  }
+
+  .language-toggle-btn svg {
+    width: 14px;
+    height: 14px;
   }
 }

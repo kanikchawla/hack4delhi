@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Download, RefreshCw, Phone, Clock } from 'lucide-react'
+import { useLanguage } from '../context/LanguageContext'
+import { translations } from '../translations/en-hi'
 import { API_URL } from '../config'
 
 const CallLogs = () => {
+  const { language } = useLanguage()
+  const t = translations[language] || translations['en']
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [downloadStatus, setDownloadStatus] = useState(null)
@@ -32,7 +36,7 @@ const CallLogs = () => {
   }, [])
 
   const handleDownload = async () => {
-    setDownloadStatus({ type: 'loading', message: 'Downloading logs...' })
+    setDownloadStatus({ type: 'loading', message: t.downloadingLogs })
     try {
       const response = await fetch(`${API_URL}/download-logs`)
       if (!response.ok) {
@@ -49,13 +53,13 @@ const CallLogs = () => {
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
       
-      setDownloadStatus({ type: 'success', message: 'Logs downloaded successfully!' })
+      setDownloadStatus({ type: 'success', message: t.downloadSuccess })
       setTimeout(() => setDownloadStatus(null), 3000)
     } catch (error) {
       console.error('Download error:', error)
       setDownloadStatus({ 
         type: 'error', 
-        message: `Failed to download logs. Backend: ${API_URL}` 
+        message: `${t.downloadError}. Backend: ${API_URL}` 
       })
     }
   }
@@ -68,14 +72,14 @@ const CallLogs = () => {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h2>Call Logs</h2>
+        <h2>{t.callLogsTitle}</h2>
         <div className="header-actions">
-          <button onClick={fetchLogs} className="btn-icon" title="Refresh logs" aria-label="Refresh">
+          <button onClick={fetchLogs} className="btn-icon" title={t.refreshLogs} aria-label="Refresh">
             <RefreshCw size={20} />
           </button>
           <button onClick={handleDownload} className="btn-primary">
             <Download size={18} />
-            Download CSV
+            {t.downloadCsv}
           </button>
         </div>
       </div>
@@ -95,19 +99,19 @@ const CallLogs = () => {
           className={`filter-btn ${filterDirection === 'all' ? 'active' : ''}`}
           onClick={() => setFilterDirection('all')}
         >
-          All Calls ({logs.length})
+          {t.allCalls} ({logs.length})
         </button>
         <button 
           className={`filter-btn ${filterDirection === 'inbound' ? 'active' : ''}`}
           onClick={() => setFilterDirection('inbound')}
         >
-          Inbound ({logs.filter(l => l.direction === 'Inbound').length})
+          {t.inbound} ({logs.filter(l => l.direction === 'Inbound').length})
         </button>
         <button 
           className={`filter-btn ${filterDirection === 'outbound' ? 'active' : ''}`}
           onClick={() => setFilterDirection('outbound')}
         >
-          Outbound ({logs.filter(l => l.direction === 'Outbound').length})
+          {t.outbound} ({logs.filter(l => l.direction === 'Outbound').length})
         </button>
       </div>
 
@@ -118,7 +122,7 @@ const CallLogs = () => {
             <Phone size={24} />
           </div>
           <div className="stat-content">
-            <div className="stat-label">Total Calls</div>
+            <div className="stat-label">{t.totalCalls}</div>
             <div className="stat-value">{logs.length}</div>
           </div>
         </div>
@@ -127,7 +131,7 @@ const CallLogs = () => {
             <Clock size={24} />
           </div>
           <div className="stat-content">
-            <div className="stat-label">Last 24 Hours</div>
+            <div className="stat-label">{t.last24Hours}</div>
             <div className="stat-value">{logs.filter(l => {
               const callTime = new Date(l.timestamp);
               const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -140,28 +144,28 @@ const CallLogs = () => {
       {/* Logs Table */}
       <div className="card">
         <div className="card-header">
-          <h3>Call Records</h3>
+          <h3>{t.callRecords}</h3>
         </div>
         <div className="card-body">
           {loading ? (
-            <div className="loading">Loading calls...</div>
+            <div className="loading">{t.loadingCalls}</div>
           ) : filteredLogs.length === 0 ? (
             <div className="empty-state">
               <Phone size={40} />
-              <p>No calls found</p>
-              <p className="sub-text">Calls will appear here as they are logged</p>
+              <p>{t.noCallsFound}</p>
+              <p className="sub-text">{t.noCallsMsg}</p>
             </div>
           ) : (
             <div className="logs-table">
               <table>
                 <thead>
                   <tr>
-                    <th>Call Time</th>
-                    <th>Direction</th>
-                    <th>From</th>
-                    <th>To</th>
-                    <th>Call SID</th>
-                    <th>Last Message</th>
+                    <th>{t.callTime}</th>
+                    <th>{t.direction}</th>
+                    <th>{t.from}</th>
+                    <th>{t.to}</th>
+                    <th>{t.callSid}</th>
+                    <th>{t.lastMessage}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -175,13 +179,13 @@ const CallLogs = () => {
                       </td>
                       <td>
                         <span className={`direction-badge ${log.direction.toLowerCase()}`}>
-                          {log.direction}
+                          {log.direction === 'Inbound' ? t.inbound : t.outbound}
                         </span>
                       </td>
                       <td className={log.direction === 'Inbound' ? 'highlight-cell' : ''}>{log.from_number}</td>
                       <td className={log.direction === 'Outbound' ? 'highlight-cell' : ''}>{log.to_number}</td>
                       <td><code>{log.call_sid}</code></td>
-                      <td className="transcript">{log.last_message ? log.last_message.substring(0, 100) : <em>No message</em>}</td>
+                      <td className="transcript">{log.last_message ? log.last_message.substring(0, 100) : <em>{t.noMessage}</em>}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -1,13 +1,18 @@
 import { Phone, PhoneIncoming, PhoneOutgoing, FileText, BarChart3, Info, X, History } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { translations } from '../translations/en-hi';
 
 const Sidebar = ({ isOpen, onClose, activeView, setActiveView }) => {
+  const { language } = useLanguage();
+  const t = translations[language] || translations['en'];
+  
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard Home', icon: BarChart3 },
-    { id: 'calllogs', label: 'Call Logs', icon: History },
-    { id: 'inbound', label: 'Inbound Logs', icon: PhoneIncoming },
-    { id: 'outbound', label: 'Outbound Calls', icon: PhoneOutgoing },
-    { id: 'queries', label: 'Queries', icon: FileText },
-    { id: 'contact', label: 'Govt Contact Info', icon: Info },
+    { id: 'dashboard', label: t.dashboardHome, icon: BarChart3 },
+    { id: 'calllogs', label: t.callLogs, icon: History },
+    { id: 'inbound', label: t.inboundLogs, icon: PhoneIncoming },
+    { id: 'outbound', label: t.outboundCalls, icon: PhoneOutgoing },
+    { id: 'queries', label: t.queries, icon: FileText },
+    { id: 'contact', label: t.govContactInfo, icon: Info },
   ];
 
   return (

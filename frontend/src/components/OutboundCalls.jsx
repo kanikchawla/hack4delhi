@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
 import { PhoneOutgoing, Phone, RefreshCw, Download, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { useLanguage } from '../context/LanguageContext'
+import { translations } from '../translations/en-hi'
 import { API_URL } from '../config'
 
 const OutboundCalls = () => {
+  const { language } = useLanguage()
+  const t = translations[language] || translations['en']
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [callStatus, setCallStatus] = useState(null)
@@ -39,15 +43,15 @@ const OutboundCalls = () => {
     
     // Validate inputs
     if (!formData.to_number.trim()) {
-      setCallStatus({ type: 'error', message: 'Please enter at least one phone number' })
+      setCallStatus({ type: 'error', message: t.pleaseEnterPhoneNumber })
       return
     }
     if (!formData.webhook_url.trim()) {
-      setCallStatus({ type: 'error', message: 'Please provide a webhook URL' })
+      setCallStatus({ type: 'error', message: t.pleaseProvideWebhookUrl })
       return
     }
 
-    setCallStatus({ type: 'loading', message: 'Initiating calls...' })
+    setCallStatus({ type: 'loading', message: t.initiatingCalls })
 
     try {
       const formDataToSend = new FormData()
@@ -76,7 +80,7 @@ const OutboundCalls = () => {
     } catch (error) {
       console.error('Make call error:', error)
       const errorMessage = error.message.includes('Failed to fetch')
-        ? `Cannot connect to backend server. Make sure the backend is running on ${API_URL}`
+        ? `${t.queryError}. ${t.pleaseProvideWebhookUrl} ${API_URL}`
         : `Error: ${error.message}`
       setCallStatus({ type: 'error', message: errorMessage })
     }
@@ -110,14 +114,14 @@ const OutboundCalls = () => {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h2>Outbound Calls Manager</h2>
+        <h2>{t.outboundCallsMonitor}</h2>
         <div className="header-actions">
-          <button onClick={fetchLogs} className="btn-icon" title="Refresh logs" aria-label="Refresh">
+          <button onClick={fetchLogs} className="btn-icon" title={t.refreshLogs} aria-label={t.refreshLogs}>
             <RefreshCw size={20} />
           </button>
           <button onClick={handleDownload} className="btn-primary">
             <Download size={18} />
-            Download Logs
+            {t.downloadLogs}
           </button>
         </div>
       </div>
@@ -126,22 +130,21 @@ const OutboundCalls = () => {
       <div className="card guide-card">
         <div className="card-header">
           <PhoneOutgoing size={20} />
-          <h3>About Outbound Calls</h3>
+          <h3>{t.aboutOutboundCalls}</h3>
         </div>
         <div className="card-body">
           <div className="guide-content">
             <p>
-              <strong>Outbound calls</strong> are initiated by government administrators to reach citizens with specific announcements, 
-              schemes, or urgent information. These calls are made through Twilio and processed by our AI voice agent system.
+              {t.outboundCallsIntro}
             </p>
             
             <div className="guide-section">
-              <h4>How to Make Outbound Calls:</h4>
+              <h4>{t.howItWorks}</h4>
               <ol className="guide-list">
-                <li>Enter one or more phone numbers (comma-separated)</li>
-                <li>(Optional) Add a custom message/announcement</li>
-                <li>Provide your ngrok webhook URL for the voice handler</li>
-                <li>Click "Initiate Calls"</li>
+                <li>{t.selectNumbers}</li>
+                <li>{t.enterCustomMessage}</li>
+                <li>{t.webhookUrl}</li>
+                <li>Click "{t.initiateCallsNow}"</li>
                 <li>Monitor call status in the table below</li>
               </ol>
             </div>
@@ -149,9 +152,9 @@ const OutboundCalls = () => {
             <div className="guide-section">
               <h4>Required Configuration:</h4>
               <ul className="guide-list">
-                <li><strong>Phone Numbers:</strong> Recipient numbers in international format (e.g., +919999999999)</li>
-                <li><strong>Custom Message:</strong> Your announcement or greeting (optional, overrides default)</li>
-                <li><strong>Webhook URL:</strong> Your ngrok/local server endpoint that handles the voice call</li>
+                <li><strong>{t.enterPhoneNumber}:</strong> Recipient numbers in international format (e.g., +919999999999)</li>
+                <li><strong>{t.customCallMessage}:</strong> Your announcement or greeting (optional, overrides default)</li>
+                <li><strong>{t.webhookUrl}:</strong> Your ngrok/local server endpoint that handles the voice call</li>
               </ul>
             </div>
 
@@ -163,12 +166,12 @@ const OutboundCalls = () => {
       <div className="card">
         <div className="card-header">
           <Phone size={20} />
-          <h3>Initiate Outbound Call</h3>
+          <h3>{t.makeCall}</h3>
         </div>
         <div className="card-body">
           <form onSubmit={handleMakeCall} className="call-form">
             <div className="form-group">
-              <label htmlFor="phone-numbers">Phone Numbers *</label>
+              <label htmlFor="phone-numbers">{t.enterPhoneNumber} *</label>
               <textarea
                 id="phone-numbers"
                 value={formData.to_number}
@@ -181,7 +184,7 @@ const OutboundCalls = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="custom-message">Custom Message (Optional)</label>
+              <label htmlFor="custom-message">{t.customCallMessage}</label>
               <textarea
                 id="custom-message"
                 value={formData.custom_message}
@@ -193,7 +196,7 @@ const OutboundCalls = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="webhook-url">Ngrok Webhook URL *</label>
+              <label htmlFor="webhook-url">{t.webhookUrl} *</label>
               <input
                 id="webhook-url"
                 type="url"
@@ -207,7 +210,7 @@ const OutboundCalls = () => {
 
             <button type="submit" className="btn-primary btn-block" disabled={callStatus?.type === 'loading'}>
               <Phone size={18} />
-              {callStatus?.type === 'loading' ? 'Initiating Calls...' : 'Initiate Calls'}
+              {callStatus?.type === 'loading' ? t.initiatingCalls : t.makeCallButton}
             </button>
           </form>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Globe } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import CallLogs from './components/CallLogs';
@@ -7,11 +7,15 @@ import InboundCalls from './components/InboundCalls';
 import OutboundCalls from './components/OutboundCalls';
 import Queries from './components/Queries';
 import ContactInfo from './components/ContactInfo';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { translations } from './translations/en-hi';
 import './App.css';
 
-function App() {
+function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeView, setActiveView] = useState('dashboard');
+  const { language, toggleLanguage } = useLanguage();
+  const t = translations[language] || translations['en'];
 
   const renderContent = () => {
     switch(activeView) {
@@ -43,13 +47,26 @@ function App() {
       />
       <main className={`main-content ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <header className="app-header">
-          <button className="menu-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle sidebar">
-            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-          <div className="header-branding">
-            <h1 className="app-title">Government Voice Agent</h1>
-            <span className="badge">Powered by MACbook</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+            <button className="menu-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle sidebar">
+              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+            <div className="header-branding">
+              <h1 className="app-title">{t.appTitle}</h1>
+              <span className="badge">{t.poweredBy}</span>
+            </div>
           </div>
+          
+          {/* Language Toggle Button */}
+          <button 
+            className="language-toggle-btn"
+            onClick={toggleLanguage}
+            title={language === 'en' ? 'Switch to Hindi' : 'Switch to English'}
+            aria-label="Toggle language"
+          >
+            <Globe size={18} />
+            <span>{language === 'en' ? 'EN' : 'HI'}</span>
+          </button>
         </header>
         
         <div className="content-wrapper">
@@ -57,6 +74,14 @@ function App() {
         </div>
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 }
 

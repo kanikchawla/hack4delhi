@@ -89,7 +89,9 @@ def init_db():
                     from_number TEXT NOT NULL,
                     to_number TEXT NOT NULL,
                     direction TEXT NOT NULL,
-                    timestamp TIMESTAMP DEFAULT NOW()
+                    timestamp TIMESTAMP DEFAULT NOW(),
+                    summary TEXT,
+                    recording_url TEXT
                 )
             ''')
             
@@ -127,7 +129,7 @@ def init_db():
             conn = sqlite3.connect(DB_NAME)
             c = conn.cursor()
             c.execute('''CREATE TABLE IF NOT EXISTS calls 
-                         (call_sid TEXT PRIMARY KEY, from_number TEXT, to_number TEXT, direction TEXT, timestamp TEXT)''')
+                         (call_sid TEXT PRIMARY KEY, from_number TEXT, to_number TEXT, direction TEXT, timestamp TEXT, summary TEXT, recording_url TEXT)''')
             c.execute('''CREATE TABLE IF NOT EXISTS transcripts 
                          (id INTEGER PRIMARY KEY AUTOINCREMENT, call_sid TEXT, role TEXT, message TEXT, timestamp TEXT)''')
             c.execute('''CREATE TABLE IF NOT EXISTS queries 
