@@ -10,10 +10,36 @@ const OutboundCalls = () => {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [callStatus, setCallStatus] = useState(null)
-  const [formData, setFormData] = useState({
-    to_number: '',
-    custom_message: '',
-    webhook_url: ''
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  
+  // Load phone number history from localStorage
+  const [phoneHistory, setPhoneHistory] = useState(() => {
+    const savedHistory = localStorage.getItem('phoneNumberHistory')
+    if (savedHistory) {
+      try {
+        return JSON.parse(savedHistory)
+      } catch (e) {
+        console.error('Error parsing phone history:', e)
+      }
+    }
+    return []
+  })
+  
+  // Initialize form data from localStorage
+  const [formData, setFormData] = useState(() => {
+    const savedData = localStorage.getItem('outboundCallFormData')
+    if (savedData) {
+      try {
+        return JSON.parse(savedData)
+      } catch (e) {
+        console.error('Error parsing saved form data:', e)
+      }
+    }
+    return {
+      to_number: '',
+      custom_message: '',
+      webhook_url: ''
+    }
   })
 
   const fetchLogs = async () => {
@@ -30,6 +56,19 @@ const OutboundCalls = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Save form data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('outboundCallFormData', JSON.stringify(formData))
+  }, [formData])
+
+  // Save phone number to history
+  const savePhoneToHistory = (phoneNumbers) => {
+    const numbers = phoneNumbers.split(/[,\n]/).map(n => n.trim()).filter(n => n)
+    const updatedHistory = [...new Set([...numbers, ...phoneHistory])].slice(0, 10) // Keep last 10 unique numbers
+    setPhoneHistory(updatedHistory)
+    localStorage.setItem('phoneNumberHistory', JSON.stringify(updatedHistory))
   }
 
   useEffect(() => {
@@ -75,7 +114,10 @@ const OutboundCalls = () => {
         message: result.message,
         details: result
       })
-      setFormData({ to_number: '', custom_message: '', webhook_url: '' })
+      // Save phone numbers to history before clearing
+      savePhoneToHistory(formData.to_number)
+      // Keep webhook URL and custom message, only clear phone numbers
+      setFormData(prev => ({ ...prev, to_number: '' }))
       setTimeout(fetchLogs, 2000)
     } catch (error) {
       console.error('Make call error:', error)
@@ -172,14 +214,61 @@ const OutboundCalls = () => {
           <form onSubmit={handleMakeCall} className="call-form">
             <div className="form-group">
               <label htmlFor="phone-numbers">{t.enterPhoneNumber} *</label>
-              <textarea
-                id="phone-numbers"
-                value={formData.to_number}
-                onChange={(e) => setFormData({ ...formData, to_number: e.target.value })}
-                placeholder="+919999999999&#10;+919876543210&#10;+1234567890"
-                rows="4"
-                required
-              />
+              <div style={{ position: 'relative', width: '100%' }}>
+                <textarea
+                  id="phone-numbers"
+                  value={formData.to_number}
+                  onChange={(e) => setFormData({ ...formData, to_number: e.target.value })}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  placeholder="+919999999999&#10;+919876543210&#10;+1234567890"
+                  rows="4"
+                  required
+                  style={{ width: '100%' }}
+                />
+                {showSuggestions && phoneHistory.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'white',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    marginTop: '4px',
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    zIndex: 1000
+                  }}>
+                    <div style={{ padding: '8px 12px', fontSize: '12px', color: '#666', borderBottom: '1px solid #eee' }}>
+                      Previously used numbers:
+                    </div>
+                    {phoneHistory.map((number, index) => (
+                      <div
+                        key={index}
+                        onClick={() => {
+                          const currentNumbers = formData.to_number.trim()
+                          const newValue = currentNumbers ? `${currentNumbers}\n${number}` : number
+                          setFormData({ ...formData, to_number: newValue })
+                          setShowSuggestions(false)
+                        }}
+                        style={{
+                          padding: '10px 12px',
+                          cursor: 'pointer',
+                          borderBottom: index < phoneHistory.length - 1 ? '1px solid #f0f0f0' : 'none',
+                          transition: 'background 0.2s',
+                          fontFamily: 'monospace'
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = '#f5f5f5'}
+                        onMouseLeave={(e) => e.target.style.background = 'white'}
+                      >
+                        {number}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <small>Enter numbers in international format, one per line or separated by comma</small>
             </div>
 
@@ -196,16 +285,16 @@ const OutboundCalls = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="webhook-url">{t.webhookUrl} *</label>
+              <label htmlFor="webhook-url">Secret Key *</label>
               <input
                 id="webhook-url"
-                type="url"
+                type="password"
                 value={formData.webhook_url}
                 onChange={(e) => setFormData({ ...formData, webhook_url: e.target.value })}
-                placeholder="https://abc123.ngrok-free.app/voice"
+                placeholder="Enter your webhook URL (will be hidden)"
                 required
               />
-              <small>Example: https://your-ngrok-url.ngrok-free.app/voice</small>
+              <small>Your webhook URL will be encrypted and hidden for security</small>
             </div>
 
             <button type="submit" className="btn-primary btn-block" disabled={callStatus?.type === 'loading'}>
