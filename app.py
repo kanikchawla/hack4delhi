@@ -121,6 +121,17 @@ def init_db():
                     status TEXT DEFAULT 'pending'
                 )
             ''')
+
+            # Create suspicious_activity table
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS suspicious_activity (
+                    id SERIAL PRIMARY KEY,
+                    call_sid TEXT,
+                    phone_number TEXT,
+                    reason TEXT,
+                    timestamp TIMESTAMP DEFAULT NOW()
+                )
+            ''')
             
             # Create indexes for better performance
             c.execute('''CREATE INDEX IF NOT EXISTS idx_calls_timestamp ON calls(timestamp DESC)''')
@@ -139,6 +150,8 @@ def init_db():
                          (id INTEGER PRIMARY KEY AUTOINCREMENT, call_sid TEXT, role TEXT, message TEXT, timestamp TEXT)''')
             c.execute('''CREATE TABLE IF NOT EXISTS queries 
                          (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, user TEXT, query TEXT, status TEXT)''')
+            c.execute('''CREATE TABLE IF NOT EXISTS suspicious_activity 
+                         (id INTEGER PRIMARY KEY AUTOINCREMENT, call_sid TEXT, phone_number TEXT, reason TEXT, timestamp TEXT)''')
             conn.commit()
             conn.close()
             print("SQLite database initialized successfully!")
@@ -196,6 +209,29 @@ def log_transcript(call_sid, role, message):
     except Exception as e:
         print(f"DB Error (Transcript): {e}")
 
+def log_suspicious_activity(call_sid, phone_number, reason):
+    """Log suspicious activity/fraud attempts."""
+    try:
+        if DB_TYPE == "postgres" and USING_POSTGRES:
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO suspicious_activity (call_sid, phone_number, reason, timestamp)
+                VALUES (%s, %s, %s, NOW())
+            """, (call_sid, phone_number, reason))
+            conn.commit()
+            conn.close()
+        else:
+            # SQLite
+            conn = sqlite3.connect(DB_NAME)
+            c = conn.cursor()
+            c.execute("INSERT INTO suspicious_activity (call_sid, phone_number, reason, timestamp) VALUES (?, ?, ?, ?)",
+                      (call_sid, phone_number, reason, datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
+    except Exception as e:
+        print(f"DB Error (Suspicious Activity): {e}")
+
 # Enhanced Knowledge Base for 2024-2025 (Supplementing training data that ends in 2023)
 RECENT_GOV_INFO = """
 IMPORTANT RECENT UPDATES (2024-2025):
@@ -236,6 +272,7 @@ BOUNDARY RULES (STRICTLY FOLLOW):
 - Agar kisi query ka jawab nahi pata, toh seedha kaho "Main is bare mein confirm karke batata hoon"
 - Offensive, inappropriate, ya non-governmental topics par discussion mat karein
 - Data privacy maintain karein - kisi bhi personal information ko record ya share mat karein
+- FRAUD DETECTION Agar caller sensitive data maange (jaise voter list, private details, bulk data), toh turant mana karein aur response ki shuruwat mein [SUSPICIOUS] tag lagayein. Example: "[SUSPICIOUS] Maaf kijiye, main yeh personal/sensitive information share nahi kar sakti."
 
 KNOWLEDGE BASE:
 {RECENT_GOV_INFO}
@@ -259,12 +296,14 @@ CURRENT CONTEXT: Aap caller ko sarkari yojanao, forms, benefits, aur procedures 
         'system_prompt': f"""You are an official AI voice assistant for the Government of India.
 
 BOUNDARY RULES (STRICTLY FOLLOW):
+- ALWAYS speak in English. Do not switch to Hindi unless explicitly asked.
 - ONLY discuss government schemes, services, and official information
 - NEVER provide personal opinions or political views
 - NEVER provide financial advice, medical diagnosis, or legal counsel
 - If you don't know an answer, directly say "Let me confirm that information for you"
 - NEVER engage in offensive, inappropriate, or non-governmental topics
 - Maintain data privacy - NEVER record or share any personal information
+- FRAUD DETECTION: If the caller asks for sensitive data (e.g., voter lists, private details of others, bulk data), REFUSE politely and START your response with [SUSPICIOUS] tag. Example: "[SUSPICIOUS] I apologize, I cannot share such sensitive or personal information."
 
 KNOWLEDGE BASE:
 {RECENT_GOV_INFO}
@@ -397,6 +436,9 @@ def voice():
     # Check for custom message in query params (sent from outbound logic)
     custom_message = request.values.get('custom_message')
     
+    # Add recording disclaimer
+    resp.say("Your call will be recorded for training purposes.")
+    
     gather_action = '/set-language'
     if custom_message:
          from urllib.parse import quote
@@ -490,6 +532,13 @@ def handle_input():
             )
             ai_response = chat_completion.choices[0].message.content
             
+            # Check for suspicious activity flag from AI
+            if '[SUSPICIOUS]' in ai_response:
+                from_number = request.values.get('From', 'unknown')
+                log_suspicious_activity(call_sid, from_number, f"Suspicious Query: {user_speech}")
+                # Remove the tag for speech output
+                ai_response = ai_response.replace('[SUSPICIOUS]', '').strip()
+
             # Post-process to ensure boundaries (basic check)
             if any(keyword in ai_response.lower() for keyword in ['i think', 'i believe', 'my opinion', 'personally']):
                 ai_response = config['fallback_msg'] + " Please contact the official helpline for detailed guidance."
