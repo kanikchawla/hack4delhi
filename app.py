@@ -206,10 +206,20 @@ IMPORTANT RECENT UPDATES (2024-2025):
 - Common Service Centres (CSCs) continue to provide citizen services
 """
 
+# Voice Configuration
+VOICE_CONFIG = {
+    'female_hindi': 'Polly.Aditi',
+    'female_english': 'Polly.Raveena', 
+    'male_hindi': 'Polly.Aditi',  # Polly doesn't have good male Hindi voice, using Aditi
+    'male_english': 'Polly.Matthew'
+}
+
 # Language Configurations with Enhanced Prompts
 LANG_CONFIG = {
     '1': { # Hindi
         'code': 'hi-IN',
+        'voice_female': VOICE_CONFIG['female_hindi'],
+        'voice_male': VOICE_CONFIG['male_hindi'],
         'system_prompt': f"""Aap Government of India ka ek official AI voice assistant hain.
 
 BOUNDARY RULES (STRICTLY FOLLOW):
@@ -231,12 +241,14 @@ WORKING GUIDELINES:
 - Agar specific department ki information chahiye, toh unke official channels ke bare mein bataein
 
 CURRENT CONTEXT: Aap caller ko sarkari yojanao, forms, benefits, aur procedures ke bare mein madad kar rahe hain.""",
-        'greeting': "Namaste. Main Government of India ka AI assistant hoon. Main aapki sarkari yojanao aur sevao ke bare mein madad kar sakta hoon.",
+        'greeting': "Namaste. Main Government of India ki AI assistant hoon. Main aapki sarkari yojanao aur sevao ke bare mein madad kar sakti hoon.",
         'fallback_msg': "Maaf kijiye, koi samasya aayi hai. Kripya phir se prayas karein ya humare official helpline number par contact karein.",
         'listen_prompt': "Kya aap abhi bhi wahin hain?"
     },
     '2': { # English
         'code': 'en-IN',
+        'voice_female': VOICE_CONFIG['female_english'],
+        'voice_male': VOICE_CONFIG['male_english'],
         'system_prompt': f"""You are an official AI voice assistant for the Government of India.
 
 BOUNDARY RULES (STRICTLY FOLLOW):
@@ -384,7 +396,7 @@ def voice():
          gather_action += f"?custom_message={quote(custom_message)}"
 
     gather = Gather(num_digits=1, action=gather_action, method='POST', timeout=10)
-    gather.say("Hindi ke liye, ek dabayein. For English, press two.", language='hi-IN')
+    gather.say("Hindi ke liye, ek dabayein. For English, press two.", language='hi-IN',voice='Polly.Aditi' )
     resp.append(gather)
     resp.redirect('/voice')
     return str(resp)
@@ -397,7 +409,7 @@ def set_language():
     
     if digit not in ['1', '2']:
         resp = VoiceResponse()
-        resp.say("Invalid selection.")
+        resp.say("Invalid selection.", voice='Polly.Aditi')
         resp.redirect('/voice')
         return str(resp)
     
@@ -415,10 +427,11 @@ def set_language():
         # "You initiated this call with: <msg>"
     
     session['messages'] = [{"role": "system", "content": config['system_prompt']}]
+    session['voice'] = config['voice_female']  # Default to female voice, can be changed based on detection
     
     resp = VoiceResponse()
     gather = Gather(num_digits=1, action='/handle-input', method='POST', input='speech', timeout=3, language=config['code'])
-    gather.say(greeting_text, language=config['code'])
+    gather.say(greeting_text, language=config['code'], voice=config['voice_female'])
     resp.append(gather)
     resp.redirect('/listen')
     return str(resp)
@@ -428,9 +441,10 @@ def listen():
     lang_id = session.get('lang_id', '2')
     config = LANG_CONFIG.get(lang_id, LANG_CONFIG['2'])
     resp = VoiceResponse()
+    voice = session.get('voice', config.get('voice_female', 'Polly.Aditi'))
     gather = Gather(action='/handle-input', method='POST', input='speech', timeout=3, language=config['code'])
     resp.append(gather)
-    resp.say(config['listen_prompt'], language=config['code'])
+    resp.say(config['listen_prompt'], language=config['code'], voice=voice)
     resp.redirect('/listen')
     return str(resp)
 
@@ -462,9 +476,10 @@ def handle_input():
         try:
             chat_completion = groq_client.chat.completions.create(
                 messages=messages,
-                model="llama-3.3-70b-versatile",
-                temperature=0.7,  # Balanced creativity while maintaining accuracy
+                model="llama-3.3-70b-versatile",  # Best available model on Groq
+                temperature=0.6,  # Slightly lower for more consistent government info
                 max_tokens=150,  # Keep responses concise for voice
+                top_p=0.9,  # Better quality responses
             )
             ai_response = chat_completion.choices[0].message.content
             
@@ -477,14 +492,16 @@ def handle_input():
             messages.append({"role": "assistant", "content": ai_response})
             session['messages'] = messages
             
+            voice = session.get('voice', config.get('voice_female', 'Polly.Aditi'))
             gather = Gather(num_digits=1, action='/handle-input', method='POST', input='speech', timeout=3, language=config['code'])
-            gather.say(ai_response, language=config['code'])
+            gather.say(ai_response, language=config['code'], voice=voice)
             resp.append(gather)
             resp.redirect('/listen')
             
         except Exception as e:
             print(f"Error: {e}")
-            resp.say(config['fallback_msg'], language=config['code'])
+            voice = session.get('voice', config.get('voice_female', 'Polly.Aditi'))
+            resp.say(config['fallback_msg'], language=config['code'], voice=voice)
     else:
         resp.redirect('/listen')
 
